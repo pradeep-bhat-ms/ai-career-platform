@@ -1,0 +1,18 @@
+# Java / Spring Boot
+target/
+*.iml
+.idea/
+*.class
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+*.env
+application-local.yml
+application-local.yaml
