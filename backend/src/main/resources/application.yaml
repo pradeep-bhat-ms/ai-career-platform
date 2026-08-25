@@ -16,15 +16,23 @@ spring:
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
-
         chat:
           model: gemini-3.6-flash
-
         embedding:
           api-key: ${GEMINI_API_KEY}
           text:
             model: text-embedding-004
 
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        options:
+          model: openai/gpt-oss-120b
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+
+ai-provider:
+  active: groq
