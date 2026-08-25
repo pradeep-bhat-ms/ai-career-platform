@@ -1,5 +1,6 @@
 package com.pradeep.aicareerplatform.controller;
 
+import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
 import com.pradeep.aicareerplatform.service.ResumeService;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,16 @@ public class ResumeController {
 
     public ResumeController(ResumeService resumeService) {
         this.resumeService = resumeService;
+    }
+
+    @PostMapping("/{resumeId}/analyze")
+    public ResponseEntity<ResumeAnalysisResponseDto> analyzeResume(
+            @PathVariable Long resumeId,
+            Authentication authentication) throws Exception {
+
+        String userEmail = authentication.getName();
+        ResumeAnalysisResponseDto response = resumeService.analyzeResume(resumeId, userEmail);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/upload")

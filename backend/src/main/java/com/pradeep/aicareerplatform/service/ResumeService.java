@@ -1,5 +1,8 @@
 package com.pradeep.aicareerplatform.service;
 
+
+import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
+import com.pradeep.aicareerplatform.dto.ResumeExtractionDto;
 import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
 import com.pradeep.aicareerplatform.entity.Resume;
 import com.pradeep.aicareerplatform.entity.User;
@@ -10,6 +13,8 @@ import org.springframework.ai.document.Document;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.databind.ObjectMapper;
+
 
 import java.io.IOException;
 import java.util.List;
@@ -20,10 +25,17 @@ public class ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
+    private final ResumeAiService resumeAiService;
+    private final ObjectMapper objectMapper;
 
-    public ResumeService(ResumeRepository resumeRepository, UserRepository userRepository) {
+    public ResumeService(ResumeRepository resumeRepository,
+                         UserRepository userRepository,
+                         ResumeAiService resumeAiService,
+                         ObjectMapper objectMapper) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
+        this.resumeAiService = resumeAiService;
+        this.objectMapper = objectMapper;
     }
 
     public ResumeUploadResponseDto uploadResume(MultipartFile file, String userEmail) throws IOException {
@@ -45,5 +57,21 @@ public class ResumeService {
         resumeRepository.save(resume);
 
         return new ResumeUploadResponseDto(resume.getId(), rawText, "Resume uploaded successfully");
+    }
+
+    public ResumeAnalysisResponseDto analyzeResume(Long resumeId, String userEmail) throws Exception {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        if (!resume.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalArgumentException("You do not have access to this resume");
+        }
+
+        ResumeExtractionDto extracted = resumeAiService.extractResumeData(resume.getRawText());
+
+        resume.setExtractedDataJson(objectMapper.writeValueAsString(extracted));
+        resumeRepository.save(resume);
+
+        return new ResumeAnalysisResponseDto(resume.getId(), extracted, "Resume analyzed successfully");
     }
 }

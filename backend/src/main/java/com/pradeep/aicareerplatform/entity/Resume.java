@@ -26,6 +26,9 @@ public class Resume {
     private String rawText;
 
     @Column(columnDefinition = "TEXT")
+    private String extractedDataJson;
+
+    @Column(columnDefinition = "TEXT")
     private String extractedSkills;
 
     @Column(columnDefinition = "TEXT")
