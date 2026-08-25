@@ -16,9 +16,15 @@ spring:
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
+
         chat:
           model: gemini-2.5-flash
+
         embedding:
           api-key: ${GEMINI_API_KEY}
           text:
             model: text-embedding-004
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
