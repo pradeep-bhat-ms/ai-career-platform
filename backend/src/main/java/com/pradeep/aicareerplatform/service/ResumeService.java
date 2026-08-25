@@ -1,6 +1,7 @@
 package com.pradeep.aicareerplatform.service;
 
 
+import com.pradeep.aicareerplatform.dto.CareerSkillAgentResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeExtractionDto;
 import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
@@ -27,15 +28,19 @@ public class ResumeService {
     private final UserRepository userRepository;
     private final ResumeAiService resumeAiService;
     private final ObjectMapper objectMapper;
+    private final CareerSkillAgentService careerSkillAgentService;
+
+
 
     public ResumeService(ResumeRepository resumeRepository,
                          UserRepository userRepository,
                          ResumeAiService resumeAiService,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper, CareerSkillAgentService careerSkillAgentService) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.resumeAiService = resumeAiService;
         this.objectMapper = objectMapper;
+        this.careerSkillAgentService = careerSkillAgentService;
     }
 
     public ResumeUploadResponseDto uploadResume(MultipartFile file, String userEmail) throws IOException {
@@ -73,5 +78,23 @@ public class ResumeService {
         resumeRepository.save(resume);
 
         return new ResumeAnalysisResponseDto(resume.getId(), extracted, "Resume analyzed successfully");
+    }
+
+
+    public CareerSkillAgentResponseDto runCareerSkillAgent(Long resumeId, String targetRole, String userEmail) throws Exception {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        if (!resume.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalArgumentException("You do not have access to this resume");
+        }
+
+        if (resume.getExtractedDataJson() == null) {
+            throw new IllegalStateException("Resume must be analyzed first");
+        }
+
+        ResumeExtractionDto extracted = objectMapper.readValue(resume.getExtractedDataJson(), ResumeExtractionDto.class);
+
+        return careerSkillAgentService.analyze(extracted.getTechnicalSkills(), targetRole);
     }
 }

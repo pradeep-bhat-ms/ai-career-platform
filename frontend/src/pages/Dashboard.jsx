@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ function Dashboard() {
   return (
     <div>
       <h2>Welcome, {fullName}</h2>
+      <Link to="/resume">Go to Resume Analyzer</Link>
       <button onClick={handleLogout}>Logout</button>
     </div>
   );

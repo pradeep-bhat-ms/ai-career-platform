@@ -1,6 +1,7 @@
 package com.pradeep.aicareerplatform.controller;
 
 import com.pradeep.aicareerplatform.config.RoleSkillConfig;
+import com.pradeep.aicareerplatform.dto.CareerSkillAgentResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
 
@@ -70,5 +71,16 @@ public class ResumeController {
     @GetMapping("/available-roles")
     public ResponseEntity<List<String>> getAvailableRoles() {
         return ResponseEntity.ok(roleSkillConfig.getAvailableRoles());
+    }
+
+    @PostMapping("/{resumeId}/career-agent")
+    public ResponseEntity<CareerSkillAgentResponseDto> runCareerAgent(
+            @PathVariable Long resumeId,
+            @RequestParam String targetRole,
+            Authentication authentication) throws Exception {
+
+        String userEmail = authentication.getName();
+        CareerSkillAgentResponseDto response = resumeService.runCareerSkillAgent(resumeId, targetRole, userEmail);
+        return ResponseEntity.ok(response);
     }
 }

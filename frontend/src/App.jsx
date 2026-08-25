@@ -3,6 +3,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 
 function App() {
   return (
@@ -19,6 +20,12 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/resume" element={
+    <ProtectedRoute>
+      <ResumeAnalyzer />
+    </ProtectedRoute>
+  }
+/>
         </Routes>
     </BrowserRouter>
   );
