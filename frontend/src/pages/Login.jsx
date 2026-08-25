@@ -17,6 +17,7 @@ function Login() {
     try {
       const response = await loginUser(form);
       localStorage.setItem("token", response.data.token);
+localStorage.setItem("fullName", response.data.fullName);
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
