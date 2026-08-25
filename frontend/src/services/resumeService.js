@@ -8,6 +8,14 @@ export const uploadResume = (file) => {
   });
 };
 
+export const runCareerAgent = (resumeId, targetRole) => {
+  return axiosInstance.post(
+    `/resume/${resumeId}/career-agent`,
+    null,
+    { params: { targetRole } }
+  );
+};
+
 export const analyzeResume = (resumeId) => {
   return axiosInstance.post(`/resume/${resumeId}/analyze`);
 };
