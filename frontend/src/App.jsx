@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer";
+import JobDescriptionAnalyzer from "./pages/JobDescriptionAnalyzer";
 
 function App() {
   return (
@@ -23,6 +24,14 @@ function App() {
         <Route path="/resume" element={
     <ProtectedRoute>
       <ResumeAnalyzer />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/job-description"
+  element={
+    <ProtectedRoute>
+      <JobDescriptionAnalyzer />
     </ProtectedRoute>
   }
 />

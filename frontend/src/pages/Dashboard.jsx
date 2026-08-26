@@ -15,6 +15,7 @@ function Dashboard() {
     <div>
       <h2>Welcome, {fullName}</h2>
       <Link to="/resume">Go to Resume Analyzer</Link>
+      <Link to="/job-description">Go to Job Description Analyzer</Link>
       <button onClick={handleLogout}>Logout</button>
     </div>
   );
