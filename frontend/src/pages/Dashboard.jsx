@@ -14,8 +14,10 @@ function Dashboard() {
   return (
     <div>
       <h2>Welcome, {fullName}</h2>
-      <Link to="/resume">Go to Resume Analyzer</Link>
-      <Link to="/job-description">Go to Job Description Analyzer</Link>
+      <Link to="/resume">Go to Resume Analyzer</Link> <br />
+      <Link to="/job-description">Go to Job Description Analyzer</Link><br />
+      <Link to="/match">Compare Resume to Job Description</Link><br />
+
       <button onClick={handleLogout}>Logout</button>
     </div>
   );

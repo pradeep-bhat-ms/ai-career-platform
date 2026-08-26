@@ -11,6 +11,8 @@ import com.pradeep.aicareerplatform.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+
 @Service
 public class JobDescriptionService {
 
@@ -45,5 +47,10 @@ public class JobDescriptionService {
         jobDescriptionRepository.save(jd);
 
         return new JobDescriptionResponseDto(jd.getId(), jd.getJobTitle(), extracted, "Job description analyzed successfully");
+    }
+    public List<JobDescription> getJobDescriptionsForUser(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return jobDescriptionRepository.findByUserId(user.getId());
     }
 }

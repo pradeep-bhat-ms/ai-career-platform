@@ -6,6 +6,7 @@ import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
 
 import com.pradeep.aicareerplatform.dto.RoleAnalysisResponseDto;
+import com.pradeep.aicareerplatform.entity.Resume;
 import com.pradeep.aicareerplatform.service.ResumeService;
 import com.pradeep.aicareerplatform.service.RoleAnalysisService;
 import org.springframework.http.ResponseEntity;
@@ -82,5 +83,10 @@ public class ResumeController {
         String userEmail = authentication.getName();
         CareerSkillAgentResponseDto response = resumeService.runCareerSkillAgent(resumeId, targetRole, userEmail);
         return ResponseEntity.ok(response);
+    }
+    @GetMapping("/my-resumes")
+    public ResponseEntity<List<Resume>> getMyResumes(Authentication authentication) {
+        String userEmail = authentication.getName();
+        return ResponseEntity.ok(resumeService.getResumesForUser(userEmail));
     }
 }

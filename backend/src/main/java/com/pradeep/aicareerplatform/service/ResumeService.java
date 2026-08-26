@@ -97,4 +97,9 @@ public class ResumeService {
 
         return careerSkillAgentService.analyze(extracted.getTechnicalSkills(), targetRole);
     }
+    public List<Resume> getResumesForUser(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return resumeRepository.findByUserId(user.getId());
+    }
 }

@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 import JobDescriptionAnalyzer from "./pages/JobDescriptionAnalyzer";
+import JdMatch from "./pages/JdMatch";
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route path="/match" element={<ProtectedRoute><JdMatch /></ProtectedRoute>} />
         </Routes>
     </BrowserRouter>
   );

@@ -31,3 +31,4 @@ export const analyzeForRole = (resumeId, targetRole) => {
     { params: { targetRole } }
   );
 };
+export const getMyResumes = () => axiosInstance.get("/resume/my-resumes");

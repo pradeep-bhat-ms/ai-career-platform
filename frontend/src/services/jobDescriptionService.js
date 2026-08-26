@@ -7,3 +7,5 @@ export const submitJobDescription = (jobTitle, company, rawText) => {
     rawText,
   });
 };
+
+export const getMyJobDescriptions = () => axiosInstance.get("/job-description/my-job-descriptions");
