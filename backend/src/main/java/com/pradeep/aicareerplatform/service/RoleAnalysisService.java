@@ -7,6 +7,7 @@ import com.pradeep.aicareerplatform.dto.RoleAnalysisResponseDto;
 import com.pradeep.aicareerplatform.entity.Resume;
 import com.pradeep.aicareerplatform.repository.ResumeRepository;
 import org.springframework.stereotype.Service;
+import com.pradeep.aicareerplatform.util.SkillMatchUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +56,7 @@ public class RoleAnalysisService {
         List<String> missingRecommended = new ArrayList<>();
 
         for (String skill : roleSkills.required()) {
-            if (containsIgnoreCase(resumeSkills, skill)) {
+            if (SkillMatchUtil.matches(resumeSkills, skill)) {
                 matched.add(skill);
             } else {
                 missingRequired.add(skill);
@@ -63,7 +64,7 @@ public class RoleAnalysisService {
         }
 
         for (String skill : roleSkills.recommended()) {
-            if (containsIgnoreCase(resumeSkills, skill)) {
+            if (SkillMatchUtil.matches(resumeSkills, skill)) {
                 matched.add(skill);
             } else {
                 missingRecommended.add(skill);
@@ -87,20 +88,5 @@ public class RoleAnalysisService {
                 matchPercentage,
                 suggestions
         );
-    }
-
-
-    private boolean containsIgnoreCase(List<String> resumeSkills, String requiredSkill) {
-        String normalizedRequired = normalize(requiredSkill);
-        return resumeSkills.stream().anyMatch(resumeSkill -> {
-            String normalizedResume = normalize(resumeSkill);
-            return normalizedResume.contains(normalizedRequired) || normalizedRequired.contains(normalizedResume);
-        });
-    }
-
-    private String normalize(String skill) {
-        return skill.toLowerCase()
-                .replaceAll("s$", "")
-                .replaceAll("[.\\-_]", "");
     }
 }
