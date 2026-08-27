@@ -9,3 +9,4 @@ export const submitJobDescription = (jobTitle, company, rawText) => {
 };
 
 export const getMyJobDescriptions = () => axiosInstance.get("/job-description/my-job-descriptions");
+export const deleteJobDescription = (jdId) => axiosInstance.delete(`/job-description/${jdId}`);

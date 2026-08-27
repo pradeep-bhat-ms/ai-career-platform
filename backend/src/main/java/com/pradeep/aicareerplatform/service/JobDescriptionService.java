@@ -53,4 +53,14 @@ public class JobDescriptionService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return jobDescriptionRepository.findByUserId(user.getId());
     }
+    public void deleteJobDescription(Long jobDescriptionId, String userEmail) {
+        JobDescription jd = jobDescriptionRepository.findById(jobDescriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Job description not found"));
+
+        if (!jd.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalArgumentException("You do not have access to this job description");
+        }
+
+        jobDescriptionRepository.delete(jd);
+    }
 }

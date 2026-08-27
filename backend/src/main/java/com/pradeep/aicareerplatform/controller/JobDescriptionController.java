@@ -35,4 +35,13 @@ public class JobDescriptionController {
         String userEmail = authentication.getName();
         return ResponseEntity.ok(jobDescriptionService.getJobDescriptionsForUser(userEmail));
     }
+    @DeleteMapping("/{jobDescriptionId}")
+    public ResponseEntity<Void> deleteJobDescription(
+            @PathVariable Long jobDescriptionId,
+            Authentication authentication) {
+
+        String userEmail = authentication.getName();
+        jobDescriptionService.deleteJobDescription(jobDescriptionId, userEmail);
+        return ResponseEntity.noContent().build();
+    }
 }

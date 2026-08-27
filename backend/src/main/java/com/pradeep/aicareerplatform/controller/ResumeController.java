@@ -89,4 +89,13 @@ public class ResumeController {
         String userEmail = authentication.getName();
         return ResponseEntity.ok(resumeService.getResumesForUser(userEmail));
     }
+    @DeleteMapping("/{resumeId}")
+    public ResponseEntity<Void> deleteResume(
+            @PathVariable Long resumeId,
+            Authentication authentication) {
+
+        String userEmail = authentication.getName();
+        resumeService.deleteResume(resumeId, userEmail);
+        return ResponseEntity.noContent().build();
+    }
 }

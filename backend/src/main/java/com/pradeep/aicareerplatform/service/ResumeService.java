@@ -103,4 +103,14 @@ public class ResumeService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return resumeRepository.findByUserId(user.getId());
     }
+    public void deleteResume(Long resumeId, String userEmail) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        if (!resume.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalArgumentException("You do not have access to this resume");
+        }
+
+        resumeRepository.delete(resume);
+    }
 }

@@ -30,6 +30,19 @@ spring:
         options:
           model: openai/gpt-oss-120b
 
+  # Mail configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000

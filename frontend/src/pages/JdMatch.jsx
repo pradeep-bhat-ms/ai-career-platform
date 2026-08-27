@@ -14,14 +14,19 @@ function JdMatch() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getMyResumes().then((res) => setResumes(res.data)).catch(() => setError("Could not load resumes"));
-    getMyJobDescriptions().then((res) => setJobDescriptions(res.data)).catch(() => setError("Could not load job descriptions"));
+    Promise.all([getMyResumes(), getMyJobDescriptions()])
+      .then(([resumeRes, jdRes]) => {
+        setResumes(resumeRes.data);
+        setJobDescriptions(jdRes.data);
+      })
+      .catch(() => setError("Could not load resumes or job descriptions"));
   }, []);
 
   const handleMatch = async () => {
     if (!selectedResumeId || !selectedJdId) return;
     setLoading(true);
     setError("");
+    setResult(null);
     try {
       const res = await matchResumeToJob(selectedResumeId, selectedJdId);
       setResult(res.data);
@@ -43,22 +48,23 @@ function JdMatch() {
         </label>
         <select
           value={selectedResumeId}
-          onChange={(e) => setSelectedResumeId(e.target.value)}
+          onChange={(e) => { setSelectedResumeId(e.target.value); setResult(null); }}
           style={{ width: "100%", padding: 10, marginBottom: 14, borderRadius: 8, border: "1px solid #374151", background: "#1f2937", color: "#e2e8f0" }}
         >
           <option value="">Choose a resume</option>
           {resumes.map((r) => (
-<option key={r.id} value={r.id}>
-  {r.fileName || `Resume #${r.id}`} — {new Date(r.uploadedAt).toLocaleDateString()}
-</option>          ))}
-        </select> 
+            <option key={r.id} value={r.id}>
+              {r.fileName || `Resume #${r.id}`} — {r.uploadedAt ? new Date(r.uploadedAt).toLocaleDateString() : ""}
+            </option>
+          ))}
+        </select>
 
         <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
           Select Job Description
         </label>
         <select
           value={selectedJdId}
-          onChange={(e) => setSelectedJdId(e.target.value)}
+          onChange={(e) => { setSelectedJdId(e.target.value); setResult(null); }}
           style={{ width: "100%", padding: 10, marginBottom: 14, borderRadius: 8, border: "1px solid #374151", background: "#1f2937", color: "#e2e8f0" }}
         >
           <option value="">Choose a job description</option>
@@ -69,7 +75,7 @@ function JdMatch() {
 
         <button className="primary-btn" onClick={handleMatch} disabled={loading || !selectedResumeId || !selectedJdId}>
           {loading && <span className="spinner"></span>}
-          Compare
+          {loading ? "Comparing..." : "Compare"}
         </button>
       </div>
 
@@ -85,35 +91,27 @@ function JdMatch() {
 
           <h3 style={{ marginTop: 20 }}>✅ Matched Required Skills</h3>
           <div className="skill-chip-group">
-            {result.matchedRequiredSkills.map((s) => <span key={s} className="chip matched">{s}</span>)}
+            {result.matchedRequiredSkills?.length > 0 ? result.matchedRequiredSkills.map((s) => <span key={s} className="chip matched">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None</span>}
           </div>
 
           <h3 style={{ marginTop: 20 }}>⚠️ Missing Required Skills</h3>
           <div className="skill-chip-group">
-            {result.missingRequiredSkills.length === 0 ? (
-              <span className="chip matched">All required skills covered!</span>
-            ) : (
-              result.missingRequiredSkills.map((s) => <span key={s} className="chip missing-required">{s}</span>)
-            )}
+            {result.missingRequiredSkills?.length === 0 ? <span className="chip matched">All required skills covered!</span> : result.missingRequiredSkills.map((s) => <span key={s} className="chip missing-required">{s}</span>)}
           </div>
 
           <h3 style={{ marginTop: 20 }}>💡 Matched Preferred Skills</h3>
           <div className="skill-chip-group">
-            {result.matchedPreferredSkills.length === 0 ? (
-              <span style={{ color: "#94a3b8", fontSize: 13 }}>None yet</span>
-            ) : (
-              result.matchedPreferredSkills.map((s) => <span key={s} className="chip matched">{s}</span>)
-            )}
+            {result.matchedPreferredSkills?.length > 0 ? result.matchedPreferredSkills.map((s) => <span key={s} className="chip matched">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None yet</span>}
           </div>
 
           <h3 style={{ marginTop: 20 }}>🧩 Missing Preferred Skills</h3>
           <div className="skill-chip-group">
-            {result.missingPreferredSkills.map((s) => <span key={s} className="chip missing-recommended">{s}</span>)}
+            {result.missingPreferredSkills?.length > 0 ? result.missingPreferredSkills.map((s) => <span key={s} className="chip missing-recommended">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None</span>}
           </div>
 
           <div className="suggestions-box">
             <strong>🎯 AI Suggestions</strong>
-            <p style={{ margin: "6px 0 0" }}>{result.suggestions}</p>
+            <p style={{ margin: "6px 0 0", whiteSpace: "pre-line" }}>{result.suggestions}</p>
           </div>
         </div>
       )}

@@ -32,3 +32,4 @@ export const analyzeForRole = (resumeId, targetRole) => {
   );
 };
 export const getMyResumes = () => axiosInstance.get("/resume/my-resumes");
+export const deleteResume = (resumeId) => axiosInstance.delete(`/resume/${resumeId}`);
