@@ -41,4 +41,7 @@ public class Resume {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
+
+    @Column
+    private String fileName;
 }

@@ -59,6 +59,7 @@ public class ResumeService {
         Resume resume = new Resume();
         resume.setUser(user);
         resume.setRawText(rawText);
+        resume.setFileName(file.getOriginalFilename());
         resumeRepository.save(resume);
 
         return new ResumeUploadResponseDto(resume.getId(), rawText, "Resume uploaded successfully");

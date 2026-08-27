@@ -48,9 +48,10 @@ function JdMatch() {
         >
           <option value="">Choose a resume</option>
           {resumes.map((r) => (
-            <option key={r.id} value={r.id}>Resume #{r.id} — uploaded {new Date(r.uploadedAt).toLocaleDateString()}</option>
-          ))}
-        </select>
+<option key={r.id} value={r.id}>
+  {r.fileName || `Resume #${r.id}`} — {new Date(r.uploadedAt).toLocaleDateString()}
+</option>          ))}
+        </select> 
 
         <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
           Select Job Description
