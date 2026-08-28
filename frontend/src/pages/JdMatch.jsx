@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import AppLayout from "../components/AppLayout";
 import { getMyResumes } from "../services/resumeService";
 import { getMyJobDescriptions } from "../services/jobDescriptionService";
 import { matchResumeToJob } from "../services/matchService";
-import "./ResumeAnalyzer.css";
+import "../ResumeAnalyzer.css";
 
 function JdMatch() {
   const [resumes, setResumes] = useState([]);
@@ -16,8 +17,8 @@ function JdMatch() {
   useEffect(() => {
     Promise.all([getMyResumes(), getMyJobDescriptions()])
       .then(([resumeRes, jdRes]) => {
-        setResumes(resumeRes.data);
-        setJobDescriptions(jdRes.data);
+        setResumes(resumeRes.data || []);
+        setJobDescriptions(jdRes.data || []);
       })
       .catch(() => setError("Could not load resumes or job descriptions"));
   }, []);
@@ -38,84 +39,103 @@ function JdMatch() {
   };
 
   return (
-    <div className="resume-page">
-      <h2>Resume ↔ Job Description Match</h2>
+    <AppLayout title="Resume ↔ JD Matching Engine" subtitle="Calculate skill match scores and missing requirement gaps">
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="upload-card" style={{ textAlign: "left" }}>
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
-          Select Resume
-        </label>
-        <select
-          value={selectedResumeId}
-          onChange={(e) => { setSelectedResumeId(e.target.value); setResult(null); }}
-          style={{ width: "100%", padding: 10, marginBottom: 14, borderRadius: 8, border: "1px solid #374151", background: "#1f2937", color: "#e2e8f0" }}
-        >
-          <option value="">Choose a resume</option>
-          {resumes.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.fileName || `Resume #${r.id}`} — {r.uploadedAt ? new Date(r.uploadedAt).toLocaleDateString() : ""}
-            </option>
-          ))}
-        </select>
+      <div className="studio-card highlight">
+        <div className="box-header">
+          <h3>🎯 Select Artifacts to Compare</h3>
+        </div>
 
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
-          Select Job Description
-        </label>
-        <select
-          value={selectedJdId}
-          onChange={(e) => { setSelectedJdId(e.target.value); setResult(null); }}
-          style={{ width: "100%", padding: 10, marginBottom: 14, borderRadius: 8, border: "1px solid #374151", background: "#1f2937", color: "#e2e8f0" }}
-        >
-          <option value="">Choose a job description</option>
-          {jobDescriptions.map((jd) => (
-            <option key={jd.id} value={jd.id}>{jd.jobTitle}{jd.company ? ` — ${jd.company}` : ""}</option>
-          ))}
-        </select>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div className="form-group">
+            <label>Select Resume</label>
+            <select
+              className="custom-select"
+              value={selectedResumeId}
+              onChange={(e) => { setSelectedResumeId(e.target.value); setResult(null); }}
+            >
+              <option value="">Choose a resume</option>
+              {resumes.map((r) => (
+                <option key={r.id} value={r.id}>{r.fileName || `Resume #${r.id}`}</option>
+              ))}
+            </select>
+          </div>
 
-        <button className="primary-btn" onClick={handleMatch} disabled={loading || !selectedResumeId || !selectedJdId}>
+          <div className="form-group">
+            <label>Select Job Description</label>
+            <select
+              className="custom-select"
+              value={selectedJdId}
+              onChange={(e) => { setSelectedJdId(e.target.value); setResult(null); }}
+            >
+              <option value="">Choose a job description</option>
+              {jobDescriptions.map((jd) => (
+                <option key={jd.id} value={jd.id}>{jd.jobTitle} {jd.company ? `(${jd.company})` : ""}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button className="neon-btn-primary" onClick={handleMatch} disabled={loading || !selectedResumeId || !selectedJdId}>
           {loading && <span className="spinner"></span>}
-          {loading ? "Comparing..." : "Compare"}
+          {loading ? "Comparing Skills..." : "Run Match Engine"}
         </button>
       </div>
 
       {result && (
-        <div className="section-card">
-          <div className="match-header">
-            <h3>{result.jobTitle}</h3>
-            <span className="match-score">{result.matchPercentage}%</span>
+        <div className="studio-card">
+          <div className="target-role-banner" style={{ marginBottom: 14 }}>
+            <div className="banner-left">
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Target Role:</span>
+              <strong style={{ color: "#fff" }}>{result.jobTitle}</strong>
+            </div>
+            <div className="role-pill" style={{ fontSize: 14 }}>{result.matchPercentage}% Compatible</div>
           </div>
+
           <div className="progress-bar-bg">
             <div className="progress-bar-fill" style={{ width: `${result.matchPercentage}%` }}></div>
           </div>
 
-          <h3 style={{ marginTop: 20 }}>✅ Matched Required Skills</h3>
-          <div className="skill-chip-group">
-            {result.matchedRequiredSkills?.length > 0 ? result.matchedRequiredSkills.map((s) => <span key={s} className="chip matched">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None</span>}
+          <div className="diagnostics-grid">
+            <div className="studio-card" style={{ background: "var(--bg-main)" }}>
+              <div className="box-header">
+                <h3>✅ Matched Required Skills</h3>
+              </div>
+              <div className="tag-collection">
+                {result.matchedRequiredSkills?.length > 0 ? (
+                  result.matchedRequiredSkills.map((s) => <span key={s} className="custom-chip green">{s}</span>)
+                ) : (
+                  <span style={{ color: "var(--text-muted)", fontSize: 12 }}>None</span>
+                )}
+              </div>
+            </div>
+
+            <div className="studio-card" style={{ background: "var(--bg-main)" }}>
+              <div className="box-header">
+                <h3>⚠️ Missing Required Skills</h3>
+              </div>
+              <div className="tag-collection">
+                {result.missingRequiredSkills?.length === 0 ? (
+                  <span className="custom-chip green">All required skills covered!</span>
+                ) : (
+                  result.missingRequiredSkills?.map((s) => <span key={s} className="custom-chip red">{s}</span>)
+                )}
+              </div>
+            </div>
           </div>
 
-          <h3 style={{ marginTop: 20 }}>⚠️ Missing Required Skills</h3>
-          <div className="skill-chip-group">
-            {result.missingRequiredSkills?.length === 0 ? <span className="chip matched">All required skills covered!</span> : result.missingRequiredSkills.map((s) => <span key={s} className="chip missing-required">{s}</span>)}
-          </div>
-
-          <h3 style={{ marginTop: 20 }}>💡 Matched Preferred Skills</h3>
-          <div className="skill-chip-group">
-            {result.matchedPreferredSkills?.length > 0 ? result.matchedPreferredSkills.map((s) => <span key={s} className="chip matched">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None yet</span>}
-          </div>
-
-          <h3 style={{ marginTop: 20 }}>🧩 Missing Preferred Skills</h3>
-          <div className="skill-chip-group">
-            {result.missingPreferredSkills?.length > 0 ? result.missingPreferredSkills.map((s) => <span key={s} className="chip missing-recommended">{s}</span>) : <span style={{ color: "#94a3b8", fontSize: 13 }}>None</span>}
-          </div>
-
-          <div className="suggestions-box">
-            <strong>🎯 AI Suggestions</strong>
-            <p style={{ margin: "6px 0 0", whiteSpace: "pre-line" }}>{result.suggestions}</p>
+          <div className="studio-card" style={{ background: "var(--bg-main)", borderColor: "rgba(56, 189, 248, 0.2)" }}>
+            <div className="box-header">
+              <h3>💡 AI Matching Recommendations</h3>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.6, margin: 0, whiteSpace: "pre-line" }}>
+              {result.suggestions}
+            </p>
           </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }
 

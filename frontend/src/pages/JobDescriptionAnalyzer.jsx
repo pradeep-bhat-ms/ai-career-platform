@@ -1,6 +1,7 @@
 import { useState } from "react";
+import AppLayout from "../components/AppLayout";
 import { submitJobDescription } from "../services/jobDescriptionService";
-import "./ResumeAnalyzer.css";
+import "../ResumeAnalyzer.css";
 
 function JobDescriptionAnalyzer() {
   const [jobTitle, setJobTitle] = useState("");
@@ -26,104 +27,96 @@ function JobDescriptionAnalyzer() {
   };
 
   return (
-    <div className="resume-page">
-      <h2>AI Job Description Analyzer</h2>
+    <AppLayout title="Job Description Analyzer" subtitle="Extract atomic required/preferred skills and role responsibilities">
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="upload-card" style={{ textAlign: "left" }}>
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
-          Job Title *
-        </label>
-        <input
-          type="text"
-          value={jobTitle}
-          onChange={(e) => setJobTitle(e.target.value)}
-          placeholder="e.g. Java Full Stack Developer"
-          style={{
-            width: "100%", padding: 10, marginBottom: 14,
-            borderRadius: 8, border: "1px solid #374151",
-            background: "#1f2937", color: "#e2e8f0",
-          }}
-        />
+      <div className="studio-card highlight">
+        <div className="box-header">
+          <h3>📋 Submit Target Job Description</h3>
+        </div>
 
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
-          Company (optional)
-        </label>
-        <input
-          type="text"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          placeholder="e.g. Example Corp"
-          style={{
-            width: "100%", padding: 10, marginBottom: 14,
-            borderRadius: 8, border: "1px solid #374151",
-            background: "#1f2937", color: "#e2e8f0",
-          }}
-        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div className="form-group">
+            <label>Job Title *</label>
+            <input
+              type="text"
+              className="custom-input"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="e.g. Java Full Stack Developer"
+            />
+          </div>
 
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13, color: "#94a3b8" }}>
-          Job Description Text *
-        </label>
-        <textarea
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-          placeholder="Paste the full job description here..."
-          rows={8}
-          style={{
-            width: "100%", padding: 10, marginBottom: 14,
-            borderRadius: 8, border: "1px solid #374151",
-            background: "#1f2937", color: "#e2e8f0", fontFamily: "inherit",
-          }}
-        />
+          <div className="form-group">
+            <label>Company (Optional)</label>
+            <input
+              type="text"
+              className="custom-input"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="e.g. Acme Corp"
+            />
+          </div>
+        </div>
 
-        <button className="primary-btn" onClick={handleSubmit} disabled={loading || !jobTitle || !rawText}>
+        <div className="form-group">
+          <label>Job Description Text *</label>
+          <textarea
+            className="custom-textarea"
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            placeholder="Paste the full job description text here..."
+            rows={7}
+          />
+        </div>
+
+        <button className="neon-btn-primary" onClick={handleSubmit} disabled={loading || !jobTitle || !rawText}>
           {loading && <span className="spinner"></span>}
-          {loading ? "Analyzing..." : "Analyze Job Description"}
+          {loading ? "Extracting Atomic Skills..." : "Analyze Job Description"}
         </button>
       </div>
 
       {result && (
-        <div className="section-card">
-          <h3>{result.jobTitle}</h3>
-          <p style={{ color: "#cbd5e1", fontSize: 14 }}>{result.extractedData.summary}</p>
-
-          {result.extractedData.experienceLevel && (
-            <p style={{ fontSize: 14 }}>
-              <strong>Experience Level:</strong> {result.extractedData.experienceLevel}
-            </p>
-          )}
-
-          <h3 style={{ marginTop: 20 }}>✅ Required Skills</h3>
-          <div className="skill-chip-group">
-            {result.extractedData.requiredSkills.map((s) => (
-              <span key={s} className="chip missing-required">{s}</span>
-            ))}
+        <div className="studio-card">
+          <div className="box-header">
+            <h3>{result.jobTitle} {result.company && `— ${result.company}`}</h3>
           </div>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13, margin: "0 0 16px 0" }}>
+            {result.extractedData?.summary}
+          </p>
 
-          <h3 style={{ marginTop: 20 }}>💡 Preferred Skills</h3>
-          <div className="skill-chip-group">
-            {result.extractedData.preferredSkills.length === 0 ? (
-              <span style={{ color: "#94a3b8", fontSize: 13 }}>None specified</span>
-            ) : (
-              result.extractedData.preferredSkills.map((s) => (
-                <span key={s} className="chip missing-recommended">{s}</span>
-              ))
-            )}
-          </div>
-
-          {result.extractedData.responsibilities.length > 0 && (
-            <>
-              <h3 style={{ marginTop: 20 }}>📋 Responsibilities</h3>
-              <ul style={{ color: "#cbd5e1", fontSize: 14, paddingLeft: 20 }}>
-                {result.extractedData.responsibilities.map((r, idx) => (
-                  <li key={idx} style={{ marginBottom: 4 }}>{r}</li>
+          <div className="diagnostics-grid">
+            <div className="studio-card" style={{ background: "var(--bg-main)" }}>
+              <div className="box-header">
+                <h3>✅ Required Skills</h3>
+                <span className="custom-chip red">{result.extractedData?.requiredSkills?.length || 0}</span>
+              </div>
+              <div className="tag-collection">
+                {result.extractedData?.requiredSkills?.map((s) => (
+                  <span key={s} className="custom-chip red">{s}</span>
                 ))}
-              </ul>
-            </>
-          )}
+              </div>
+            </div>
+
+            <div className="studio-card" style={{ background: "var(--bg-main)" }}>
+              <div className="box-header">
+                <h3>💡 Preferred Skills</h3>
+                <span className="custom-chip amber">{result.extractedData?.preferredSkills?.length || 0}</span>
+              </div>
+              <div className="tag-collection">
+                {result.extractedData?.preferredSkills?.length === 0 ? (
+                  <span style={{ color: "var(--text-muted)", fontSize: 12 }}>None specified</span>
+                ) : (
+                  result.extractedData?.preferredSkills?.map((s) => (
+                    <span key={s} className="custom-chip amber">{s}</span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </AppLayout>
   );
 }
 

@@ -3,7 +3,7 @@ spring:
     name: aicareerplatform
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/aicareerplatform
+    url: jdbc:postgresql://localhost:5433/aicareerplatform
     username: postgres
     password: root
 
@@ -12,16 +12,31 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   ai:
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
+
         chat:
-          model: gemini-3.6-flash
+          model: gemini-2.5-flash
+
         embedding:
           api-key: ${GEMINI_API_KEY}
           text:
-            model: text-embedding-004
+            model: gemini-embedding-001
+            dimensions: 1536
+
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 1536
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
 
     openai:
       api-key: ${GROQ_API_KEY}
@@ -30,7 +45,6 @@ spring:
         options:
           model: openai/gpt-oss-120b
 
-  # Mail configuration
   mail:
     host: smtp.gmail.com
     port: 587
