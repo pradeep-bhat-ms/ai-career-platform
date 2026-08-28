@@ -2,6 +2,7 @@ import { useState } from "react";
 import { loginUser } from "../services/authService";
 import { useNavigate, Link } from "react-router-dom";
 
+
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -32,6 +33,7 @@ localStorage.setItem("fullName", response.data.fullName);
       <input name="password" type="password" placeholder="Password" onChange={handleChange} required />
       <button type="submit">Login</button>
       <p>Don't have an account? <Link to="/register">Register</Link></p>
+      <p><Link to="/forgot-password">Forgot Password?</Link></p>
     </form>
   );
 }

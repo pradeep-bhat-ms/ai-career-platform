@@ -7,6 +7,7 @@ import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 import JobDescriptionAnalyzer from "./pages/JobDescriptionAnalyzer";
 import JdMatch from "./pages/JdMatch";
 import MyDocuments from "./pages/MyDocuments";
+import ForgotPassword from "./pages/ForgotPassword";
 function App() {
   return (
     <BrowserRouter>
@@ -38,6 +39,7 @@ function App() {
 />
 <Route path="/my-documents" element={<ProtectedRoute><MyDocuments /></ProtectedRoute>} />
 <Route path="/match" element={<ProtectedRoute><JdMatch /></ProtectedRoute>} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
         </Routes>
     </BrowserRouter>
   );
