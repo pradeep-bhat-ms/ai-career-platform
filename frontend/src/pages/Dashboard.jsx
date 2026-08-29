@@ -49,11 +49,11 @@ function Dashboard() {
           </div>
         </div>
         <Link
-          to="/resume"
+          to="/interview"
           className="neon-btn-primary"
           style={{ padding: "6px 14px", fontSize: 12 }}
         >
-          Launch Resume Studio
+          🎙 Start Mock Interview
         </Link>
       </div>
 
@@ -107,11 +107,11 @@ function Dashboard() {
         <h3>Verified Career Intelligence Modules</h3>
       </div>
 
-      {/* Modular 4-Card Grid */}
+      {/* Modular 6-Card Grid */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 16
         }}
       >
@@ -138,7 +138,7 @@ function Dashboard() {
             }}
           >
             Extract atomic skills, run ATS scoring against target roles, and
-            evaluate gaps.
+            manage documents.
           </p>
           <Link
             to="/resume"
@@ -213,8 +213,7 @@ function Dashboard() {
               margin: "0 0 14px 0"
             }}
           >
-            Evaluate resume compatibility against target JDs and view personalized
-            AI suggestions.
+            Evaluate resume compatibility against target JDs and inspect match scoring.
           </p>
           <Link
             to="/match"
@@ -229,8 +228,100 @@ function Dashboard() {
           </Link>
         </div>
 
-        {/* Card 4: RAG Interview Prep Assistant */}
+        {/* Card 4: AI Interview Agent */}
+        <div className="studio-card">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8
+            }}
+          >
+            <strong style={{ color: "#fff", fontSize: 14 }}>
+              🎙 AI Interview Agent
+            </strong>
+            <span
+              className="role-pill"
+              style={{
+                background: "rgba(56, 189, 248, 0.15)",
+                color: "var(--cyan-glow)",
+                borderColor: "rgba(56, 189, 248, 0.3)"
+              }}
+            >
+              Interactive Mock
+            </span>
+          </div>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: 12,
+              margin: "0 0 14px 0"
+            }}
+          >
+            Real-time dynamic questioning, answer evaluation, strength breakdown, and instant scoring.
+          </p>
+          <Link
+            to="/interview"
+            style={{
+              color: "var(--cyan-glow)",
+              fontSize: 12,
+              textDecoration: "none",
+              fontWeight: 600
+            }}
+          >
+            Launch Interview Agent →
+          </Link>
+        </div>
+
+        {/* Card 5: Code Arena */}
         <div className="studio-card highlight">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8
+            }}
+          >
+            <strong style={{ color: "#fff", fontSize: 14 }}>
+              💻 Code Arena
+            </strong>
+            <span
+              className="role-pill"
+              style={{
+                background: "rgba(56, 189, 248, 0.15)",
+                color: "var(--cyan-glow)",
+                borderColor: "rgba(56, 189, 248, 0.3)"
+              }}
+            >
+              Multi-Language
+            </span>
+          </div>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: 12,
+              margin: "0 0 14px 0"
+            }}
+          >
+            Solve algorithmic problems in Java, Python, C++, JS, or SQL with instant AI code evaluation.
+          </p>
+          <Link
+            to="/code-arena"
+            style={{
+              color: "var(--cyan-glow)",
+              fontSize: 12,
+              textDecoration: "none",
+              fontWeight: 600
+            }}
+          >
+            Launch Code Arena →
+          </Link>
+        </div>
+
+        {/* Card 6: RAG Interview Prep Assistant */}
+        <div className="studio-card">
           <div
             style={{
               display: "flex",

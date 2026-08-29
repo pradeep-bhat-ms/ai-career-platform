@@ -17,16 +17,29 @@ public class InterviewAiService {
     public String generateQuestion(String role, String interviewType, String difficulty,
                                    List<String> previousQuestions, int questionNumber, int totalQuestions) {
 
+        String difficultyGuidance = switch (difficulty.toLowerCase()) {
+            case "easy" -> "EASY means: basic definitions, simple 'what is X' or 'what does X do' questions, " +
+                    "suitable for a fresher who just learned the topic. No code writing required. " +
+                    "No multi-part or comparison questions. Example level: 'What is a REST API?' or 'What is the use of @RestController?'";
+            case "medium" -> "MEDIUM means: a focused comparison, a 'how would you do X' question, or explaining " +
+                    "how a specific feature works with one example. May include a short code snippet if directly relevant.";
+            case "hard" -> "HARD means: multi-part, architecture-level, or scenario-based questions requiring tradeoff " +
+                    "discussion, system design thinking, or deep internals knowledge.";
+            default -> "";
+        };
+
         String promptText = """
-                You are conducting a %s interview for a %s role at %s difficulty.
-                This is question %d of %d.
+            You are conducting a %s interview for a %s role at %s difficulty.
+            %s
 
-                Questions already asked in this session (do not repeat these topics):
-                %s
+            This is question %d of %d.
 
-                Generate ONE clear, specific interview question appropriate for this role, type, and difficulty.
-                Return ONLY the question text, nothing else — no numbering, no preamble.
-                """.formatted(interviewType, role, difficulty, questionNumber, totalQuestions,
+            Questions already asked in this session (do not repeat these topics):
+            %s
+
+            Generate ONE clear, specific interview question appropriate for this role, type, and difficulty level as defined above.
+            Return ONLY the question text, nothing else — no numbering, no preamble.
+            """.formatted(interviewType, role, difficulty, difficultyGuidance, questionNumber, totalQuestions,
                 previousQuestions.isEmpty() ? "None yet" : String.join("; ", previousQuestions));
 
         return chatClient.prompt()

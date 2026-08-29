@@ -10,6 +10,8 @@ import JdMatch from "./pages/JdMatch";
 import MyDocuments from "./pages/MyDocuments";
 import ForgotPassword from "./pages/ForgotPassword";
 import RagAssistant from "./pages/RagAssistant";
+import InterviewAgent from "./pages/InterviewAgent";
+import CodeArena from "./pages/CodeArena";
 import "./ResumeAnalyzer.css";
 
 function App() {
@@ -76,6 +78,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/interview"
+  element={
+    <ProtectedRoute>
+      <InterviewAgent />
+    </ProtectedRoute>
+  }
+/>
+<Route path="/code-arena" element={<ProtectedRoute><CodeArena /></ProtectedRoute>} />
+        
       </Routes>
     </BrowserRouter>
   );

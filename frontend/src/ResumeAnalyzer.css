@@ -845,3 +845,56 @@ html, body, #root {
   line-height: 1.4;
   white-space: normal;
 }
+/* ==========================================================================
+   AI Interview Agent Theme Additions
+   ========================================================================== */
+
+.interview-score-pill {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.interview-score-pill.high {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--emerald-glow);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.interview-score-pill.medium {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--amber-glow);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.interview-score-pill.low {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--rose-glow);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.interview-review-box {
+  background: var(--bg-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.interview-review-box:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.interview-eval-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
