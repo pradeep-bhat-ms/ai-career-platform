@@ -5,7 +5,9 @@ import {
   analyzeResume,
   getAvailableRoles,
   analyzeForRole,
-  runCareerAgent
+  runCareerAgent,
+  getMyResumes,
+  deleteResume
 } from "../services/resumeService";
 import "../ResumeAnalyzer.css";
 
@@ -17,6 +19,7 @@ function ResumeAnalyzer() {
   const [selectedRole, setSelectedRole] = useState("Software Engineer");
   const [roleAnalysis, setRoleAnalysis] = useState(null);
   const [careerAgentData, setCareerAgentData] = useState(null);
+  const [savedResumes, setSavedResumes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [evaluatingRole, setEvaluatingRole] = useState(false);
   const [error, setError] = useState("");
@@ -25,17 +28,28 @@ function ResumeAnalyzer() {
 
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    getAvailableRoles()
-      .then((res) => {
-        if (res.data && res.data.length > 0) {
-          setRoles(res.data);
-          if (!res.data.includes(selectedRole)) {
-            setSelectedRole(res.data[0]);
-          }
+  const loadInitialData = async () => {
+    try {
+      const [rolesRes, resumesRes] = await Promise.all([
+        getAvailableRoles(),
+        getMyResumes()
+      ]);
+
+      if (rolesRes.data && rolesRes.data.length > 0) {
+        setRoles(rolesRes.data);
+        if (!rolesRes.data.includes(selectedRole)) {
+          setSelectedRole(rolesRes.data[0]);
         }
-      })
-      .catch(() => setError("Could not load target roles"));
+      }
+
+      setSavedResumes(resumesRes.data || []);
+    } catch (err) {
+      setError("Could not load initial setup data");
+    }
+  };
+
+  useEffect(() => {
+    loadInitialData();
   }, []);
 
   const handleDrag = (e) => {
@@ -65,7 +79,7 @@ function ResumeAnalyzer() {
     }
   };
 
-  // Explicit Trigger: Upload file, run extraction, and evaluate against target role
+  // Upload and analyze new resume
   const handleUploadAndAnalyze = async () => {
     if (!file) {
       setError("Please select or drop a PDF resume first.");
@@ -76,16 +90,13 @@ function ResumeAnalyzer() {
     setError("");
 
     try {
-      // 1. Upload PDF
       const uploadRes = await uploadResume(file);
       const newResumeId = uploadRes.data.resumeId;
       setResumeId(newResumeId);
 
-      // 2. Extract Data
       const analyzeRes = await analyzeResume(newResumeId);
       setExtractedData(analyzeRes.data.extractedData);
 
-      // 3. Run Deterministic and Agent evaluations
       if (selectedRole) {
         const [deterministicRes, agentRes] = await Promise.all([
           analyzeForRole(newResumeId, selectedRole),
@@ -94,6 +105,9 @@ function ResumeAnalyzer() {
         setRoleAnalysis(deterministicRes.data);
         setCareerAgentData(agentRes.data);
       }
+
+      const updatedResumes = await getMyResumes();
+      setSavedResumes(updatedResumes.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Analysis failed. Please check backend logs.");
     } finally {
@@ -101,7 +115,51 @@ function ResumeAnalyzer() {
     }
   };
 
-  // Re-run evaluation when switching target role on an already uploaded resume
+  // Select an existing resume
+  const handleSelectExistingResume = async (existingId) => {
+    setLoading(true);
+    setError("");
+    setResumeId(existingId);
+    setFile(null);
+
+    try {
+      const analyzeRes = await analyzeResume(existingId);
+      setExtractedData(analyzeRes.data.extractedData);
+
+      if (selectedRole) {
+        const [deterministicRes, agentRes] = await Promise.all([
+          analyzeForRole(existingId, selectedRole),
+          runCareerAgent(existingId, selectedRole)
+        ]);
+        setRoleAnalysis(deterministicRes.data);
+        setCareerAgentData(agentRes.data);
+      }
+    } catch (err) {
+      setError("Failed to load selected resume evaluation.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete an existing resume
+  const handleDeleteResume = async (e, idToDelete) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this resume?")) return;
+
+    try {
+      await deleteResume(idToDelete);
+      setSavedResumes((prev) => prev.filter((r) => r.id !== idToDelete));
+      
+      // If the currently viewed resume was deleted, clear the analysis pane
+      if (resumeId === idToDelete) {
+        handleReset();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete resume.");
+    }
+  };
+
+  // Re-run evaluation for new target role
   const handleRoleReEvaluate = async () => {
     if (!resumeId || !selectedRole) return;
     setEvaluatingRole(true);
@@ -133,72 +191,73 @@ function ResumeAnalyzer() {
   return (
     <AppLayout
       title="Resume Studio"
-      subtitle="ATS analysis, bullet optimization, keyword intelligence"
+      subtitle="ATS analysis, bullet optimization, keyword intelligence & document vault"
     >
       {error && <div className="error-banner">{error}</div>}
 
-      {/* --- SECTION 1: UPLOAD & TARGET ROLE CARD (ALWAYS VISIBLE AT TOP) --- */}
-      <div className="studio-card highlight" style={{ maxWidth: 880, margin: "0 auto 24px auto" }}>
-        <div className="persona-card" style={{ marginBottom: 16 }}>
-          <div className="persona-badge-title">
-            <span>◎</span> TARGET ROLE SELECTION
-          </div>
-          <div>
-            <label className="persona-label">Select Target Job Role</label>
-            <select
-              className="persona-select"
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-            >
-              {roles.map((r) => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Drag & Drop Area */}
-        <div
-          className={`dropzone-container ${dragActive ? "drag-active" : ""}`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
-
-          <div className="dropzone-icon">📄</div>
-          <div className="dropzone-main-text">
-            {file ? file.name : "Drag & drop your resume PDF here"}
-          </div>
-          <div className="dropzone-sub-text">
-            {file ? `${(file.size / 1024).toFixed(1)} KB selected` : "PDF format supported"}
+      {/* --- TOP ROW: UPLOADER & RESUME VAULT --- */}
+      <div className="diagnostics-grid" style={{ marginBottom: 24 }}>
+        {/* Left Column: Role Selector & Upload Box */}
+        <div className="studio-card highlight">
+          <div className="persona-card" style={{ marginBottom: 14 }}>
+            <div className="persona-badge-title">
+              <span>◎</span> TARGET ROLE SELECTION
+            </div>
+            <div>
+              <label className="persona-label">Select Target Job Role</label>
+              <select
+                className="persona-select"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+              >
+                {roles.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <button
-            type="button"
-            className="btn-browse"
-            onClick={(e) => {
-              e.stopPropagation();
-              fileInputRef.current.click();
-            }}
+          <div
+            className={`dropzone-container ${dragActive ? "drag-active" : ""}`}
+            style={{ padding: "30px 16px" }}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current.click()}
           >
-            {file ? "Change File" : "Browse Files"}
-          </button>
-        </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
 
-        {/* Explicit Action Button */}
-        <div style={{ textAlign: "center", marginTop: 20 }}>
+            <div className="dropzone-icon" style={{ fontSize: 26, marginBottom: 6 }}>📄</div>
+            <div className="dropzone-main-text" style={{ fontSize: 13 }}>
+              {file ? file.name : "Drag & drop new resume PDF"}
+            </div>
+            <div className="dropzone-sub-text" style={{ fontSize: 11, marginBottom: 12 }}>
+              {file ? `${(file.size / 1024).toFixed(1)} KB selected` : "Supports standard PDF formats"}
+            </div>
+
+            <button
+              type="button"
+              className="btn-browse"
+              style={{ fontSize: 11, padding: "6px 14px" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                fileInputRef.current.click();
+              }}
+            >
+              {file ? "Change File" : "Browse Files"}
+            </button>
+          </div>
+
           <button
             className="neon-btn-primary"
-            style={{ minWidth: 260, padding: "12px 28px", fontSize: 14 }}
+            style={{ width: "100%", marginTop: 14 }}
             onClick={handleUploadAndAnalyze}
             disabled={loading || !file}
           >
@@ -206,11 +265,89 @@ function ResumeAnalyzer() {
             {loading ? "Analyzing Resume with AI..." : "Upload & Analyze Resume"}
           </button>
         </div>
+
+        {/* Right Column: Your Saved Resumes (with Delete & Load) */}
+        <div className="studio-card">
+          <div className="box-header">
+            <h3>📁 Your Saved Resumes</h3>
+            <span className="badge-count blue">{savedResumes.length}</span>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px 0" }}>
+            Click to evaluate or manage saved resume artifacts
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 310, overflowY: "auto" }}>
+            {savedResumes.map((doc) => {
+              const isSelected = resumeId === doc.id;
+              return (
+                <div
+                  key={doc.id}
+                  className={`check-item-box ${isSelected ? "passed" : ""}`}
+                  style={{
+                    justifyContent: "space-between",
+                    cursor: "pointer",
+                    borderColor: isSelected ? "var(--cyan-glow)" : "var(--border-subtle)",
+                    background: isSelected ? "rgba(56, 189, 248, 0.08)" : "var(--bg-surface)"
+                  }}
+                  onClick={() => handleSelectExistingResume(doc.id)}
+                >
+                  <div style={{ minWidth: 0, paddingRight: 8 }}>
+                    <strong style={{ color: isSelected ? "var(--cyan-glow)" : "#fff", fontSize: 13, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                      {doc.fileName || doc.title || `Resume #${doc.id}`}
+                    </strong>
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      Uploaded: {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "Saved"}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{
+                        fontSize: 11,
+                        padding: "4px 10px",
+                        background: isSelected ? "var(--cyan-glow)" : "var(--bg-card)",
+                        color: isSelected ? "#000" : "#fff",
+                        border: "none",
+                        fontWeight: 700
+                      }}
+                    >
+                      {isSelected ? "Active" : "Load"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteResume(e, doc.id)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--rose-glow)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "4px 6px"
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {savedResumes.length === 0 && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "28px 0" }}>
+                No resumes uploaded yet. Upload a file on the left to start.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* --- SECTION 2: RESULTS CARD (APPEARS BELOW UPON ANALYSIS) --- */}
+      {/* --- RESULTS SECTION --- */}
       {roleAnalysis && (
-        <div style={{ maxWidth: 880, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           {/* Target Role Status Header */}
           <div className="target-role-banner">
             <div className="banner-left">
@@ -244,7 +381,7 @@ function ResumeAnalyzer() {
             </div>
           </div>
 
-          {/* Score Overview Row */}
+          {/* Score Overview Grid */}
           <div className="score-overview-grid">
             <div className="hero-score-card">
               <div className="hero-score-number">{roleAnalysis.matchPercentage}%</div>
@@ -278,7 +415,7 @@ function ResumeAnalyzer() {
             </button>
           </div>
 
-          {/* TAB 1: Deterministic Match View */}
+          {/* Tab 1: Deterministic Match */}
           {activeTab === "deterministic" && (
             <div className="diagnostics-grid">
               <div className="studio-card">
@@ -317,7 +454,7 @@ function ResumeAnalyzer() {
             </div>
           )}
 
-          {/* TAB 2: Career Agent Recommendations */}
+          {/* Tab 2: Career Agent Recommendations */}
           {activeTab === "agent" && careerAgentData && (
             <div className="studio-card">
               <div className="box-header">

@@ -9,6 +9,7 @@ import JobDescriptionAnalyzer from "./pages/JobDescriptionAnalyzer";
 import JdMatch from "./pages/JdMatch";
 import MyDocuments from "./pages/MyDocuments";
 import ForgotPassword from "./pages/ForgotPassword";
+import RagAssistant from "./pages/RagAssistant";
 import "./ResumeAnalyzer.css";
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        
         <Route
           path="/dashboard"
           element={
@@ -27,6 +29,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        {/* Make sure /resume points to ResumeAnalyzer */}
         <Route
           path="/resume"
           element={
@@ -35,6 +39,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/job-description"
           element={
@@ -43,6 +48,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/match"
           element={
@@ -51,11 +57,22 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/my-documents"
           element={
             <ProtectedRoute>
               <MyDocuments />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Make sure /rag-assistant points to RagAssistant */}
+        <Route
+          path="/rag-assistant"
+          element={
+            <ProtectedRoute>
+              <RagAssistant />
             </ProtectedRoute>
           }
         />

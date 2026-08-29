@@ -1,9 +1,8 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "../ResumeAnalyzer.css";
 
 export default function AppLayout({ children, title, subtitle }) {
-  const location = useLocation();
   const navigate = useNavigate();
   const fullName = localStorage.getItem("fullName") || "User";
 
@@ -18,7 +17,7 @@ export default function AppLayout({ children, title, subtitle }) {
     { label: "Resume Studio", path: "/resume", icon: "📄" },
     { label: "JD Analyzer", path: "/job-description", icon: "💼" },
     { label: "Match & Compare", path: "/match", icon: "🎯" },
-    { label: "My Documents", path: "/my-documents", icon: "📁" }
+    { label: "RAG Assistant", path: "/rag-assistant", icon: "🤖" },
   ];
 
   return (
@@ -37,14 +36,14 @@ export default function AppLayout({ children, title, subtitle }) {
           <div className="sidebar-section-title">Career Studio</div>
           <nav className="nav-menu">
             {navItems.map((item) => (
-              <Link
+              <NavLink
                 key={item.path}
                 to={item.path}
-                className={`nav-item ${location.pathname === item.path ? "active" : ""}`}
+                className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
               >
                 <span>{item.icon}</span>
                 <span>{item.label}</span>
-              </Link>
+              </NavLink>
             ))}
           </nav>
         </div>
@@ -60,11 +59,11 @@ export default function AppLayout({ children, title, subtitle }) {
         </div>
       </aside>
 
-      {/* Main Panel Viewport */}
+      {/* Main Viewport */}
       <div className="app-main">
         <header className="app-topbar">
           <div className="topbar-title-group">
-            <h1>{title || "Resume Studio"}</h1>
+            <h1>{title || "Career Workspace"}</h1>
             <p>{subtitle || "ATS analysis, keyword intelligence, and role preparation"}</p>
           </div>
 
