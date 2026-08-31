@@ -333,8 +333,7 @@ function RagAssistant() {
                           <strong style={{ color: "var(--cyan-glow)" }}>
                             {src.title || src.documentTitle || "Source"}:
                           </strong>{" "}
-                          {src.content || src.textSnippet || (typeof src === "string" ? src : JSON.stringify(src))}
-                        </div>
+{src.snippet || src.content || src.textSnippet || (typeof src === "string" ? src : "")}                        </div>
                       ))}
                     </div>
                   </div>
