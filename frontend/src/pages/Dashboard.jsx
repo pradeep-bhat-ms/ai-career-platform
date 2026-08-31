@@ -107,7 +107,7 @@ function Dashboard() {
         <h3>Verified Career Intelligence Modules</h3>
       </div>
 
-      {/* Modular 6-Card Grid */}
+      {/* Modular Card Grid */}
       <div
         style={{
           display: "grid",
@@ -228,7 +228,53 @@ function Dashboard() {
           </Link>
         </div>
 
-        {/* Card 4: AI Interview Agent */}
+        {/* Card 4: Skill Roadmap */}
+        <div className="studio-card highlight">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 8
+            }}
+          >
+            <strong style={{ color: "#fff", fontSize: 14 }}>
+              🗺️ Skill Roadmap
+            </strong>
+            <span
+              className="role-pill"
+              style={{
+                background: "rgba(56, 189, 248, 0.15)",
+                color: "var(--cyan-glow)",
+                borderColor: "rgba(56, 189, 248, 0.3)"
+              }}
+            >
+              AI Curriculum
+            </span>
+          </div>
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: 12,
+              margin: "0 0 14px 0"
+            }}
+          >
+            Compute missing skills against role benchmarks and generate personalized 4-week study plans.
+          </p>
+          <Link
+            to="/skill-gap"
+            style={{
+              color: "var(--cyan-glow)",
+              fontSize: 12,
+              textDecoration: "none",
+              fontWeight: 600
+            }}
+          >
+            Launch Skill Roadmap →
+          </Link>
+        </div>
+
+        {/* Card 5: AI Interview Agent */}
         <div className="studio-card">
           <div
             style={{
@@ -244,9 +290,9 @@ function Dashboard() {
             <span
               className="role-pill"
               style={{
-                background: "rgba(56, 189, 248, 0.15)",
-                color: "var(--cyan-glow)",
-                borderColor: "rgba(56, 189, 248, 0.3)"
+                background: "rgba(251, 191, 36, 0.15)",
+                color: "var(--amber-glow)",
+                borderColor: "rgba(251, 191, 36, 0.3)"
               }}
             >
               Interactive Mock
@@ -274,8 +320,8 @@ function Dashboard() {
           </Link>
         </div>
 
-        {/* Card 5: Code Arena */}
-        <div className="studio-card highlight">
+        {/* Card 6: Code Arena */}
+        <div className="studio-card">
           <div
             style={{
               display: "flex",
@@ -320,7 +366,7 @@ function Dashboard() {
           </Link>
         </div>
 
-        {/* Card 6: RAG Interview Prep Assistant */}
+        {/* Card 7: RAG Interview Prep Assistant */}
         <div className="studio-card">
           <div
             style={{

@@ -12,6 +12,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import RagAssistant from "./pages/RagAssistant";
 import InterviewAgent from "./pages/InterviewAgent";
 import CodeArena from "./pages/CodeArena";
+import SkillGapAndRoadmap from "./pages/SkillGapAndRoadmap";
 import "./ResumeAnalyzer.css";
 
 function App() {
@@ -87,6 +88,7 @@ function App() {
   }
 />
 <Route path="/code-arena" element={<ProtectedRoute><CodeArena /></ProtectedRoute>} />
+<Route path="/skill-gap" element={<ProtectedRoute><SkillGapAndRoadmap /></ProtectedRoute>} />
         
       </Routes>
     </BrowserRouter>
