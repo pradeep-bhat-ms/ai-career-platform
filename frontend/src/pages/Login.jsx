@@ -3,6 +3,7 @@ import { loginUser } from "../services/authService";
 import { useNavigate, Link } from "react-router-dom";
 import "../ResumeAnalyzer.css";
 
+
 function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
@@ -19,8 +20,7 @@ function Login() {
     setLoading(true);
     try {
       const response = await loginUser(form);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("fullName", response.data.fullName);
+localStorage.setItem("fullName", response.data.fullName);
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");

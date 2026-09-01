@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import com.pradeep.aicareerplatform.exception.TooManyRequestsException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -41,5 +41,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(errors);
+    }
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, String>> handleTooManyRequests(
+            TooManyRequestsException ex) {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("message", ex.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(error);
     }
 }

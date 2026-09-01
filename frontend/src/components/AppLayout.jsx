@@ -1,15 +1,21 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "../ResumeAnalyzer.css";
+import axiosInstance from "../services/axiosConfig";
 
 export default function AppLayout({ children, title, subtitle }) {
   const navigate = useNavigate();
   const fullName = localStorage.getItem("fullName") || "User";
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("fullName");
-    navigate("/login");
+   const handleLogout = async () => {
+    try {
+      await axiosInstance.post("/auth/logout");
+    } catch {
+      // still navigate away even if the request fails
+    } finally {
+      localStorage.removeItem("fullName");
+      navigate("/login");
+    }
   };
 
   const navItems = [

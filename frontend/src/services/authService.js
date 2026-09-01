@@ -1,18 +1,17 @@
-import axios from "axios";
-
-const API_BASE = "http://localhost:8080/api/auth";
+import axiosInstance from "./axiosConfig";
 
 export const registerUser = (data) => {
-  return axios.post(`${API_BASE}/register`, data);
+  return axiosInstance.post("/auth/register", data);
 };
 
 export const loginUser = (data) => {
-  return axios.post(`${API_BASE}/login`, data);
+  return axiosInstance.post("/auth/login", data);
 };
+
 export const forgotPassword = (email) => {
-  return axios.post(`${API_BASE}/forgot-password`, { email });
+  return axiosInstance.post("/auth/forgot-password", { email });
 };
 
 export const resetPassword = (email, otpCode, newPassword) => {
-  return axios.post(`${API_BASE}/reset-password`, { email, otpCode, newPassword });
+  return axiosInstance.post("/auth/reset-password", { email, otpCode, newPassword });
 };

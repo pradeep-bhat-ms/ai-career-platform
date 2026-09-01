@@ -3,6 +3,7 @@ import { registerUser } from "../services/authService";
 import { useNavigate, Link } from "react-router-dom";
 import "../ResumeAnalyzer.css";
 
+
 function Register() {
   const [form, setForm] = useState({ fullName: "", email: "", password: "" });
   const [error, setError] = useState("");
@@ -17,8 +18,7 @@ function Register() {
     setLoading(true);
     try {
       const response = await registerUser(form);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("fullName", response.data.fullName);
+ localStorage.setItem("fullName", response.data.fullName);
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");

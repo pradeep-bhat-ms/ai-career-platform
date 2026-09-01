@@ -29,6 +29,9 @@ public class JwtService {
                 .signWith(getSigningKey())
                 .compact();
     }
+    public long getExpirationMs() {
+        return expirationMs;
+    }
 
     public String extractEmail(String token) {
         return Jwts.parser()
@@ -49,5 +52,6 @@ public class JwtService {
         } catch (Exception e) {
             return false;
         }
+
     }
 }
