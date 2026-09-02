@@ -33,3 +33,22 @@ export const analyzeForRole = (resumeId, targetRole) => {
 };
 export const getMyResumes = () => axiosInstance.get("/resume/my-resumes");
 export const deleteResume = (resumeId) => axiosInstance.delete(`/resume/${resumeId}`);
+export const getScoreBreakdown = (resumeId, targetRole) => {
+  return axiosInstance.get(`/resume/${resumeId}/score-breakdown`, {
+    params: { targetRole },
+  });
+};
+export const proposeImprovements = (resumeId, targetRole, missingSkills = []) => {
+  return axiosInstance.post(
+    `/resume/${resumeId}/improvements/propose`,
+    missingSkills,
+    { params: { targetRole } }
+  );
+};
+export const applyImprovements = (resumeId, targetRole, selectedProposals) => {
+  return axiosInstance.post(
+    `/resume/${resumeId}/improvements/apply`,
+    selectedProposals,
+    { params: { targetRole } }
+  );
+};

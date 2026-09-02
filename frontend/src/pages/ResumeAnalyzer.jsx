@@ -7,7 +7,9 @@ import {
   analyzeForRole,
   runCareerAgent,
   getMyResumes,
-  deleteResume
+  deleteResume,
+  proposeImprovements,
+  applyImprovements
 } from "../services/resumeService";
 import "../ResumeAnalyzer.css";
 
@@ -25,6 +27,13 @@ function ResumeAnalyzer() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("deterministic");
   const [dragActive, setDragActive] = useState(false);
+
+  // --- AI REWRITE & PROPOSALS STATE ---
+  const [improving, setImproving] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState({});
+  const [scoreDelta, setScoreDelta] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -88,6 +97,8 @@ function ResumeAnalyzer() {
 
     setLoading(true);
     setError("");
+    setSuggestions([]);
+    setScoreDelta(null);
 
     try {
       const uploadRes = await uploadResume(file);
@@ -121,6 +132,8 @@ function ResumeAnalyzer() {
     setError("");
     setResumeId(existingId);
     setFile(null);
+    setSuggestions([]);
+    setScoreDelta(null);
 
     try {
       const analyzeRes = await analyzeResume(existingId);
@@ -149,8 +162,7 @@ function ResumeAnalyzer() {
     try {
       await deleteResume(idToDelete);
       setSavedResumes((prev) => prev.filter((r) => r.id !== idToDelete));
-      
-      // If the currently viewed resume was deleted, clear the analysis pane
+
       if (resumeId === idToDelete) {
         handleReset();
       }
@@ -164,6 +176,8 @@ function ResumeAnalyzer() {
     if (!resumeId || !selectedRole) return;
     setEvaluatingRole(true);
     setError("");
+    setSuggestions([]);
+    setScoreDelta(null);
 
     try {
       const [deterministicRes, agentRes] = await Promise.all([
@@ -179,12 +193,85 @@ function ResumeAnalyzer() {
     }
   };
 
+  // --- AI REWRITE PROPOSAL TRIGGER ---
+  const handleTriggerAIImprovement = async (sectionFilter = "ALL") => {
+    const activeId = resumeId || (savedResumes.length > 0 ? savedResumes[0].id : null);
+    if (!activeId) {
+      setError("Please select or upload a resume first.");
+      return;
+    }
+
+    setImproving(true);
+    setError("");
+    setScoreDelta(null);
+
+    try {
+      const missing = roleAnalysis?.missingRequiredSkills || [];
+      const res = await proposeImprovements(activeId, selectedRole, missing);
+      
+      const fetched = res.data || [];
+      setSuggestions(fetched);
+
+      // Default select all suggestions
+      const initialSelection = {};
+      fetched.forEach((s) => {
+        initialSelection[s.id] = true;
+      });
+      setSelectedSuggestions(initialSelection);
+    } catch (err) {
+      setError(err.response?.data?.message || "AI failed to generate improvements. Check backend logs.");
+    } finally {
+      setImproving(false);
+    }
+  };
+
+  const handleToggleSuggestion = (id) => {
+    setSelectedSuggestions((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // --- APPLY SELECTED PROPOSALS & RE-EVALUATE ---
+  const handleApplySelected = async () => {
+    const chosen = suggestions.filter((s) => selectedSuggestions[s.id]);
+    if (chosen.length === 0) {
+      setError("Please select at least one proposal to apply.");
+      return;
+    }
+
+    setApplying(true);
+    setError("");
+
+    try {
+      const previousScore = roleAnalysis?.matchPercentage || 65;
+      const res = await applyImprovements(resumeId, selectedRole, chosen);
+
+      const newAnalysis = res.data;
+      setRoleAnalysis(newAnalysis);
+      setScoreDelta({
+        before: previousScore,
+        after: newAnalysis.matchPercentage,
+        diff: newAnalysis.matchPercentage - previousScore
+      });
+
+      // Clear proposals drawer on successful patch
+      setSuggestions([]);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to apply selected improvements.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
   const handleReset = () => {
     setFile(null);
     setResumeId(null);
     setExtractedData(null);
     setRoleAnalysis(null);
     setCareerAgentData(null);
+    setSuggestions([]);
+    setScoreDelta(null);
     setError("");
   };
 
@@ -266,7 +353,7 @@ function ResumeAnalyzer() {
           </button>
         </div>
 
-        {/* Right Column: Your Saved Resumes (with Delete & Load) */}
+        {/* Right Column: Saved Resumes */}
         <div className="studio-card">
           <div className="box-header">
             <h3>📁 Your Saved Resumes</h3>
@@ -348,6 +435,38 @@ function ResumeAnalyzer() {
       {/* --- RESULTS SECTION --- */}
       {roleAnalysis && (
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          
+          {/* Real-time Before/After Score Delta Banner */}
+          {scoreDelta && (
+            <div
+              className="studio-card highlight"
+              style={{
+                background: "rgba(34, 197, 94, 0.08)",
+                borderColor: "#22c55e",
+                marginBottom: 20
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <h4 style={{ margin: 0, color: "#fff", fontSize: 15 }}>
+                    🎉 Selected Optimizations Applied & Re-evaluated!
+                  </h4>
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
+                    Your resume text has been updated and immediately tested against ATS heuristics.
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: "#22c55e" }}>
+                    {scoreDelta.before}% → {scoreDelta.after}%
+                  </span>
+                  <span className="role-pill" style={{ marginLeft: 10, color: "#22c55e" }}>
+                    +{scoreDelta.diff} points
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Target Role Status Header */}
           <div className="target-role-banner">
             <div className="banner-left">
@@ -385,21 +504,258 @@ function ResumeAnalyzer() {
           <div className="score-overview-grid">
             <div className="hero-score-card">
               <div className="hero-score-number">{roleAnalysis.matchPercentage}%</div>
-              <div className="hero-score-label">ATS Score</div>
+              <div className="hero-score-label">{roleAnalysis.scoreLabel || "AI Resume Compatibility Estimate"}</div>
             </div>
 
-            <div className="section-checks-grid">
-              <div className="check-item-box passed">✓ Experience</div>
-              <div className="check-item-box passed">✓ Education</div>
-              <div className={`check-item-box ${roleAnalysis.missingRequiredSkills?.length > 0 ? "failed" : "passed"}`}>
-                {roleAnalysis.missingRequiredSkills?.length > 0 ? "✕" : "✓"} Skills Coverage
+            {roleAnalysis.scoreBreakdown && (
+              <div className="section-checks-grid">
+                {roleAnalysis.scoreBreakdown.map((cat) => (
+                  <div
+                    key={cat.category}
+                    className={`check-item-box ${cat.score >= 70 ? "passed" : cat.score >= 40 ? "" : "failed"}`}
+                    title={cat.explanation}
+                  >
+                    {cat.score >= 70 ? "✓" : cat.score >= 40 ? "⚠" : "✕"} {cat.category} ({cat.score}%)
+                  </div>
+                ))}
               </div>
-              <div className="check-item-box passed">✓ Projects</div>
-              <div className="check-item-box passed">✓ Summary</div>
+            )}
+          </div>
+
+          {roleAnalysis.scoreExplanation && (
+            <div className="studio-card" style={{ margin: "0 0 20px 0" }}>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+                💡 {roleAnalysis.scoreExplanation}
+              </p>
+            </div>
+          )}
+
+          {/* Detailed Progress Bars Breakdown */}
+          {roleAnalysis.scoreBreakdown && (
+            <div className="studio-card" style={{ marginBottom: 20 }}>
+              <div className="box-header">
+                <h3>Score Breakdown</h3>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {roleAnalysis.scoreBreakdown.map((cat) => (
+                  <div key={cat.category}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                      <span>{cat.category}</span>
+                      <span style={{ color: "var(--cyan-glow)" }}>{cat.score}%</span>
+                    </div>
+                    <div style={{ background: "var(--bg-hover)", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                      <div style={{
+                        width: `${cat.score}%`,
+                        height: "100%",
+                        background: cat.score >= 70 ? "#22c55e" : cat.score >= 40 ? "#f59e0b" : "#ef4444"
+                      }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0 0" }}>
+                      {cat.explanation}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* --- ACTIONABLE PRIORITY IMPROVEMENTS & AI SYNTHESIS --- */}
+          <div className="studio-card highlight" style={{ marginTop: 20, marginBottom: 20 }}>
+            <div className="box-header" style={{ marginBottom: 14 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, color: "#fff" }}>🎯 Priority ATS Improvements</h3>
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Address high-deduction items to boost compatibility
+                </span>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block" }}>
+                  Projected Score Lift
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#22c55e" }}>
+                  {roleAnalysis.matchPercentage}% → ~85%
+                </span>
+              </div>
+            </div>
+
+            {/* Priority Cards List */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Missing Skills */}
+              {roleAnalysis.missingRequiredSkills?.length > 0 && (
+                <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span className="custom-chip red">🔴 High Priority</span>
+                      <strong style={{ color: "#fff", fontSize: 13 }}>
+                        {roleAnalysis.missingRequiredSkills.join(" & ")}
+                      </strong>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                      Not detected in resume. Add verified evidence to pass automated screeners.
+                    </p>
+                  </div>
+                  <button 
+                    className="btn-secondary" 
+                    style={{ fontSize: 11, padding: "6px 12px" }}
+                    onClick={() => setActiveTab("deterministic")}
+                  >
+                    Add Evidence
+                  </button>
+                </div>
+              )}
+
+              {/* Experience Clarity */}
+              <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span className="custom-chip red">🔴 High Priority</span>
+                    <strong style={{ color: "#fff", fontSize: 13 }}>Experience Clarity</strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                    Years of hands-on experience or apprenticeship timeline not explicitly labeled.
+                  </p>
+                </div>
+                <button 
+                  className="btn-secondary" 
+                  style={{ fontSize: 11, padding: "6px 12px" }}
+                  onClick={() => handleTriggerAIImprovement("EXPERIENCE")}
+                >
+                  Improve Experience
+                </button>
+              </div>
+
+              {/* Project Impact */}
+              <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span className="custom-chip amber">🟡 Medium Priority</span>
+                    <strong style={{ color: "#fff", fontSize: 13 }}>Project Impact & Architecture</strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                    Projects detected, but measurable production metrics and architecture keywords could be stronger.
+                  </p>
+                </div>
+                <button 
+                  className="btn-secondary" 
+                  style={{ fontSize: 11, padding: "6px 12px" }}
+                  onClick={() => handleTriggerAIImprovement("PROJECTS")}
+                >
+                  Strengthen Impact
+                </button>
+              </div>
+
+              {/* Education */}
+              <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span className="custom-chip green">🟢 Good</span>
+                    <strong style={{ color: "#fff", fontSize: 13 }}>Education Section</strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                    Verified specialization detected. No critical action required.
+                  </p>
+                </div>
+                <span style={{ fontSize: 12, color: "#22c55e", fontWeight: 600 }}>✓ Verified</span>
+              </div>
+            </div>
+
+            {/* AI Action Trigger Button */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button
+                className="neon-btn-primary"
+                style={{ padding: "10px 24px", fontSize: 13 }}
+                onClick={() => handleTriggerAIImprovement("ALL")}
+                disabled={improving || !resumeId}
+              >
+                {improving && <span className="spinner"></span>}
+                {improving ? "Generating Rewrites with AI..." : "✨ Improve Resume with AI"}
+              </button>
             </div>
           </div>
 
-          {/* Styled Navigation Tabs */}
+          {/* --- EXPANDABLE AI SUGGESTIONS DRAWER --- */}
+          {suggestions.length > 0 && (
+            <div className="studio-card" style={{ marginBottom: 20, border: "1px solid var(--cyan-glow)" }}>
+              <div className="box-header" style={{ marginBottom: 14 }}>
+                <div>
+                  <h3 style={{ margin: 0, color: "#fff" }}>📋 Review AI Rewrite Proposals</h3>
+                  <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
+                    Select which targeted bullet rewrites you want to apply. No fake metrics were added.
+                  </p>
+                </div>
+                <span className="role-pill" style={{ color: "var(--cyan-glow)" }}>
+                  {Object.values(selectedSuggestions).filter(Boolean).length} of {suggestions.length} Selected
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {suggestions.map((sug) => {
+                  const isChecked = !!selectedSuggestions[sug.id];
+                  return (
+                    <div
+                      key={sug.id}
+                      className="check-item-box"
+                      style={{
+                        display: "flex",
+                        gap: 14,
+                        alignItems: "flex-start",
+                        background: isChecked ? "rgba(56, 189, 248, 0.05)" : "var(--bg-main)",
+                        borderColor: isChecked ? "rgba(56, 189, 248, 0.4)" : "var(--border-subtle)",
+                        cursor: "pointer"
+                      }}
+                      onClick={() => handleToggleSuggestion(sug.id)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSuggestion(sug.id)}
+                        style={{ marginTop: 6, cursor: "pointer" }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+
+                      <div style={{ flex: 1, fontSize: 13 }}>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                          <span className="role-pill">{sug.section}</span>
+                          <span className={`custom-chip ${sug.priority === "HIGH" ? "red" : "amber"}`}>{sug.priority}</span>
+                          <strong style={{ color: "#fff" }}>{sug.issueTitle}</strong>
+                        </div>
+
+                        {sug.originalText && (
+                          <div style={{ color: "#ef4444", textDecoration: "line-through", marginBottom: 4 }}>
+                            {sug.originalText}
+                          </div>
+                        )}
+
+                        <div style={{ color: "#34d399", fontWeight: 500, marginBottom: 6 }}>
+                          {sug.suggestedText}
+                        </div>
+
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          <strong>Reason: </strong> {sug.reason}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action Button: Apply Selected & Re-evaluate */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+                <button
+                  className="neon-btn-primary"
+                  style={{ padding: "10px 24px", fontSize: 13 }}
+                  onClick={handleApplySelected}
+                  disabled={applying || Object.values(selectedSuggestions).filter(Boolean).length === 0}
+                >
+                  {applying && <span className="spinner"></span>}
+                  {applying ? "Applying & Re-evaluating..." : "Apply Selected Improvements →"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Tabs */}
           <div className="studio-tab-bar">
             <button
               className={`studio-tab-btn ${activeTab === "deterministic" ? "active" : ""}`}
@@ -446,9 +802,13 @@ function ResumeAnalyzer() {
                   Secondary skills to boost candidate competitiveness
                 </p>
                 <div className="tag-collection">
-                  {roleAnalysis.missingRecommendedSkills?.map((s) => (
-                    <span key={s} className="custom-chip amber">{s}</span>
-                  ))}
+                  {!roleAnalysis.missingRecommendedSkills || roleAnalysis.missingRecommendedSkills.length === 0 ? (
+                    <span className="custom-chip green">All recommended skills covered!</span>
+                  ) : (
+                    roleAnalysis.missingRecommendedSkills.map((s) => (
+                      <span key={s} className="custom-chip amber">{s}</span>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

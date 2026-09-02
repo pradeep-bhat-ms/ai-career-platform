@@ -16,4 +16,7 @@ public class RoleAnalysisResponseDto {
     private List<String> optionalSkills;
     private int matchPercentage;
     private String suggestions;
+    private String scoreLabel; // e.g. "AI Resume Compatibility Estimate"
+    private List<ScoreCategoryDto> scoreBreakdown;
+    private String scoreExplanation; // plain-language "why this number" summary
 }

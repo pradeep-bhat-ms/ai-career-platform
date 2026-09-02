@@ -1,12 +1,10 @@
 package com.pradeep.aicareerplatform.controller;
 
 import com.pradeep.aicareerplatform.config.RoleSkillConfig;
-import com.pradeep.aicareerplatform.dto.CareerSkillAgentResponseDto;
-import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
-import com.pradeep.aicareerplatform.dto.ResumeUploadResponseDto;
+import com.pradeep.aicareerplatform.dto.*;
 
-import com.pradeep.aicareerplatform.dto.RoleAnalysisResponseDto;
 import com.pradeep.aicareerplatform.entity.Resume;
+import com.pradeep.aicareerplatform.service.ResumeImprovementService;
 import com.pradeep.aicareerplatform.service.ResumeService;
 import com.pradeep.aicareerplatform.service.RoleAnalysisService;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +22,13 @@ public class ResumeController {
     private final RoleAnalysisService roleAnalysisService;
     private final ResumeService resumeService;
     private final RoleSkillConfig roleSkillConfig;
+    private final ResumeImprovementService resumeImprovementService;
 
-    public ResumeController(ResumeService resumeService , RoleAnalysisService roleAnalysisService , RoleSkillConfig roleSkillConfig) {
+    public ResumeController(ResumeService resumeService , RoleAnalysisService roleAnalysisService , RoleSkillConfig roleSkillConfig , ResumeImprovementService resumeImprovementService) {
         this.resumeService = resumeService;
         this.roleAnalysisService = roleAnalysisService;
         this.roleSkillConfig = roleSkillConfig;
+        this.resumeImprovementService = resumeImprovementService;
     }
 
     @PostMapping("/{resumeId}/analyze")
@@ -97,5 +97,28 @@ public class ResumeController {
         String userEmail = authentication.getName();
         resumeService.deleteResume(resumeId, userEmail);
         return ResponseEntity.noContent().build();
+    }
+    @PostMapping("/{resumeId}/improvements/propose")
+    public ResponseEntity<List<ResumeImprovementSuggestionDto>> proposeImprovements(
+            @PathVariable Long resumeId,
+            @RequestParam String targetRole,
+            @RequestBody List<String> missingSkills) {
+
+        List<ResumeImprovementSuggestionDto> list =
+                resumeImprovementService.getActionableImprovements(resumeId, targetRole, missingSkills);
+        return ResponseEntity.ok(list);
+    }
+    @PostMapping("/{resumeId}/improvements/apply")
+    public ResponseEntity<RoleAnalysisResponseDto> applyImprovements(
+            @PathVariable Long resumeId,
+            @RequestParam String targetRole,
+            @RequestBody List<ResumeImprovementSuggestionDto> selectedImprovements,
+            Authentication authentication) throws Exception {
+
+        String userEmail = authentication.getName();
+        RoleAnalysisResponseDto updatedAnalysis = resumeImprovementService.applyImprovementsAndReanalyze(
+                resumeId, targetRole, selectedImprovements, userEmail);
+
+        return ResponseEntity.ok(updatedAnalysis);
     }
 }
