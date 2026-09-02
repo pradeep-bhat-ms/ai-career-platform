@@ -207,12 +207,11 @@ function ResumeAnalyzer() {
 
     try {
       const missing = roleAnalysis?.missingRequiredSkills || [];
-      const res = await proposeImprovements(activeId, selectedRole, missing);
+      const res = await proposeImprovements(activeId, selectedRole, sectionFilter, missing);
       
       const fetched = res.data || [];
       setSuggestions(fetched);
 
-      // Default select all suggestions
       const initialSelection = {};
       fetched.forEach((s) => {
         initialSelection[s.id] = true;
@@ -244,7 +243,7 @@ function ResumeAnalyzer() {
     setError("");
 
     try {
-      const previousScore = roleAnalysis?.matchPercentage || 65;
+      const previousScore = roleAnalysis?.matchPercentage ?? 0;
       const res = await applyImprovements(resumeId, selectedRole, chosen);
 
       const newAnalysis = res.data;
@@ -255,7 +254,6 @@ function ResumeAnalyzer() {
         diff: newAnalysis.matchPercentage - previousScore
       });
 
-      // Clear proposals drawer on successful patch
       setSuggestions([]);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to apply selected improvements.");
@@ -571,10 +569,12 @@ function ResumeAnalyzer() {
 
               <div style={{ textAlign: "right" }}>
                 <span style={{ fontSize: 12, color: "var(--text-muted)", display: "block" }}>
-                  Projected Score Lift
+                  {roleAnalysis.matchPercentage >= 85 ? "ATS Status" : "Projected Score Lift"}
                 </span>
                 <span style={{ fontSize: 15, fontWeight: 700, color: "#22c55e" }}>
-                  {roleAnalysis.matchPercentage}% → ~85%
+                  {roleAnalysis.matchPercentage >= 85
+                    ? "Optimal Compatibility"
+                    : `${roleAnalysis.matchPercentage}% → ~85%`}
                 </span>
               </div>
             </div>

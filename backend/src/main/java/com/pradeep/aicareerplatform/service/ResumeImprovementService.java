@@ -1,15 +1,17 @@
 package com.pradeep.aicareerplatform.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pradeep.aicareerplatform.dto.ResumeImprovementSuggestionDto;
 import com.pradeep.aicareerplatform.dto.RoleAnalysisResponseDto;
 import com.pradeep.aicareerplatform.entity.Resume;
 import com.pradeep.aicareerplatform.repository.ResumeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,30 +19,44 @@ import java.util.List;
 @Service
 public class ResumeImprovementService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResumeImprovementService.class);
+
     private final ChatClient chatClient;
     private final ResumeRepository resumeRepository;
     private final RoleAnalysisService roleAnalysisService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public ResumeImprovementService(ChatClient.Builder chatClientBuilder,
                                     ResumeRepository resumeRepository,
-                                    RoleAnalysisService roleAnalysisService) {
+                                    RoleAnalysisService roleAnalysisService,
+                                    ObjectMapper objectMapper) {
         this.chatClient = chatClientBuilder.build();
         this.resumeRepository = resumeRepository;
         this.roleAnalysisService = roleAnalysisService;
+        this.objectMapper = objectMapper;
     }
 
     public List<ResumeImprovementSuggestionDto> getActionableImprovements(
             Long resumeId,
             String targetRole,
-            List<String> missingSkills) {
+            List<String> missingSkills,
+            String sectionFilter,
+            String userEmail) {
 
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
 
+        if (resume.getUser() == null || !resume.getUser().getEmail().equalsIgnoreCase(userEmail)) {
+            throw new AccessDeniedException("Access denied: You do not have permission to view or improve this resume.");
+        }
+
         String missingSkillsText = (missingSkills == null || missingSkills.isEmpty())
                 ? "None"
                 : String.join(", ", missingSkills);
+
+        String sectionInstruction = (sectionFilter == null || sectionFilter.equalsIgnoreCase("ALL"))
+                ? "Provide 3 to 4 prioritized, balanced suggestions across all sections."
+                : "STRICT: Focus ONLY on rewriting the " + sectionFilter + " section. Provide 2 to 3 targeted suggestions exclusively for this section.";
 
         String prompt = String.format("""
             You are a principal technical career coach.
@@ -50,10 +66,12 @@ public class ResumeImprovementService {
             2. Experience duration is unclear or missing metrics.
             3. Project descriptions lack measurable outcomes/technologies.
 
+            Task Scope:
+            %s
+
             Original Resume Text:
             %s
 
-            Generate 3 to 4 prioritized, truthful suggestions to improve ATS alignment.
             Rules:
             - Return ONLY a valid JSON array.
             - Do NOT invent companies or metrics the candidate didn't mention.
@@ -72,7 +90,7 @@ public class ResumeImprovementService {
                 "selected": true
               }
             ]
-            """, targetRole, missingSkillsText, resume.getRawText());
+            """, targetRole, missingSkillsText, sectionInstruction, resume.getRawText());
 
         String response = chatClient.prompt().user(prompt).call().content();
         return parseSuggestionsJson(response);
@@ -89,7 +107,7 @@ public class ResumeImprovementService {
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
 
         if (resume.getUser() == null || !resume.getUser().getEmail().equalsIgnoreCase(userEmail)) {
-            throw new AccessDeniedException("Access denied");
+            throw new AccessDeniedException("Access denied: You do not have permission to modify this resume.");
         }
 
         String updatedText = resume.getRawText();
@@ -133,6 +151,7 @@ public class ResumeImprovementService {
                     new TypeReference<List<ResumeImprovementSuggestionDto>>() {}
             );
         } catch (Exception e) {
+            log.error("Failed to parse AI resume suggestions JSON. Raw AI Output: {}", rawAiResponse, e);
             return Collections.emptyList();
         }
     }

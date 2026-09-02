@@ -38,11 +38,11 @@ export const getScoreBreakdown = (resumeId, targetRole) => {
     params: { targetRole },
   });
 };
-export const proposeImprovements = (resumeId, targetRole, missingSkills = []) => {
+export const proposeImprovements = (resumeId, targetRole, sectionFilter = "ALL", missingSkills = []) => {
   return axiosInstance.post(
     `/resume/${resumeId}/improvements/propose`,
     missingSkills,
-    { params: { targetRole } }
+    { params: { targetRole, sectionFilter } }
   );
 };
 export const applyImprovements = (resumeId, targetRole, selectedProposals) => {
