@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import AppLayout from "../components/AppLayout";
-import {
-  uploadResume,
-  analyzeResume,
-  getAvailableRoles,
-  analyzeForRole,
-  runCareerAgent,
-  getMyResumes,
-  deleteResume,
-  proposeImprovements,
-  applyImprovements
-} from "../services/resumeService";
+import * as resumeService from "../services/resumeService";
 import "../ResumeAnalyzer.css";
 
 function ResumeAnalyzer() {
@@ -24,6 +14,7 @@ function ResumeAnalyzer() {
   const [savedResumes, setSavedResumes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [evaluatingRole, setEvaluatingRole] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("deterministic");
   const [dragActive, setDragActive] = useState(false);
@@ -39,20 +30,19 @@ function ResumeAnalyzer() {
 
   const loadInitialData = async () => {
     try {
-      const [rolesRes, resumesRes] = await Promise.all([
-        getAvailableRoles(),
-        getMyResumes()
-      ]);
+      const rolesRes = resumeService.getAvailableRoles ? await resumeService.getAvailableRoles() : { data: [] };
+      const resumesRes = resumeService.getMyResumes ? await resumeService.getMyResumes() : { data: [] };
 
-      if (rolesRes.data && rolesRes.data.length > 0) {
+      if (rolesRes?.data && rolesRes.data.length > 0) {
         setRoles(rolesRes.data);
         if (!rolesRes.data.includes(selectedRole)) {
           setSelectedRole(rolesRes.data[0]);
         }
       }
 
-      setSavedResumes(resumesRes.data || []);
+      setSavedResumes(resumesRes?.data || []);
     } catch (err) {
+      console.error("Initialization Error:", err);
       setError("Could not load initial setup data");
     }
   };
@@ -101,25 +91,28 @@ function ResumeAnalyzer() {
     setScoreDelta(null);
 
     try {
-      const uploadRes = await uploadResume(file);
+      const uploadRes = await resumeService.uploadResume(file);
       const newResumeId = uploadRes.data.resumeId;
       setResumeId(newResumeId);
 
-      const analyzeRes = await analyzeResume(newResumeId);
+      const analyzeRes = await resumeService.analyzeResume(newResumeId);
       setExtractedData(analyzeRes.data.extractedData);
 
-      if (selectedRole) {
+      if (selectedRole && resumeService.analyzeForRole) {
         const [deterministicRes, agentRes] = await Promise.all([
-          analyzeForRole(newResumeId, selectedRole),
-          runCareerAgent(newResumeId, selectedRole)
+          resumeService.analyzeForRole(newResumeId, selectedRole),
+          resumeService.runCareerAgent ? resumeService.runCareerAgent(newResumeId, selectedRole) : Promise.resolve({ data: null })
         ]);
         setRoleAnalysis(deterministicRes.data);
         setCareerAgentData(agentRes.data);
       }
 
-      const updatedResumes = await getMyResumes();
-      setSavedResumes(updatedResumes.data || []);
+      if (resumeService.getMyResumes) {
+        const updatedResumes = await resumeService.getMyResumes();
+        setSavedResumes(updatedResumes.data || []);
+      }
     } catch (err) {
+      console.error("Upload Error:", err);
       setError(err.response?.data?.message || "Analysis failed. Please check backend logs.");
     } finally {
       setLoading(false);
@@ -136,18 +129,19 @@ function ResumeAnalyzer() {
     setScoreDelta(null);
 
     try {
-      const analyzeRes = await analyzeResume(existingId);
+      const analyzeRes = await resumeService.analyzeResume(existingId);
       setExtractedData(analyzeRes.data.extractedData);
 
-      if (selectedRole) {
+      if (selectedRole && resumeService.analyzeForRole) {
         const [deterministicRes, agentRes] = await Promise.all([
-          analyzeForRole(existingId, selectedRole),
-          runCareerAgent(existingId, selectedRole)
+          resumeService.analyzeForRole(existingId, selectedRole),
+          resumeService.runCareerAgent ? resumeService.runCareerAgent(existingId, selectedRole) : Promise.resolve({ data: null })
         ]);
         setRoleAnalysis(deterministicRes.data);
         setCareerAgentData(agentRes.data);
       }
     } catch (err) {
+      console.error("Selection Error:", err);
       setError("Failed to load selected resume evaluation.");
     } finally {
       setLoading(false);
@@ -160,7 +154,9 @@ function ResumeAnalyzer() {
     if (!window.confirm("Are you sure you want to delete this resume?")) return;
 
     try {
-      await deleteResume(idToDelete);
+      if (resumeService.deleteResume) {
+        await resumeService.deleteResume(idToDelete);
+      }
       setSavedResumes((prev) => prev.filter((r) => r.id !== idToDelete));
 
       if (resumeId === idToDelete) {
@@ -181,8 +177,8 @@ function ResumeAnalyzer() {
 
     try {
       const [deterministicRes, agentRes] = await Promise.all([
-        analyzeForRole(resumeId, selectedRole),
-        runCareerAgent(resumeId, selectedRole)
+        resumeService.analyzeForRole(resumeId, selectedRole),
+        resumeService.runCareerAgent ? resumeService.runCareerAgent(resumeId, selectedRole) : Promise.resolve({ data: null })
       ]);
       setRoleAnalysis(deterministicRes.data);
       setCareerAgentData(agentRes.data);
@@ -190,6 +186,37 @@ function ResumeAnalyzer() {
       setError(err.response?.data?.message || "Role evaluation failed");
     } finally {
       setEvaluatingRole(false);
+    }
+  };
+
+  // --- DOWNLOAD RESUME HANDLER ---
+  const handleDownloadResume = async () => {
+    const activeId = resumeId || (savedResumes.length > 0 ? savedResumes[0].id : null);
+    if (!activeId) {
+      setError("No active resume selected to download.");
+      return;
+    }
+
+    if (typeof resumeService.downloadResume !== "function") {
+      alert("Download functionality is not yet configured in resumeService.js.");
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const response = await resumeService.downloadResume(activeId);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Updated_Resume_${activeId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      setError("Failed to download updated resume PDF.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -207,8 +234,8 @@ function ResumeAnalyzer() {
 
     try {
       const missing = roleAnalysis?.missingRequiredSkills || [];
-      const res = await proposeImprovements(activeId, selectedRole, sectionFilter, missing);
-      
+      const res = await resumeService.proposeImprovements(activeId, selectedRole, sectionFilter, missing);
+
       const fetched = res.data || [];
       setSuggestions(fetched);
 
@@ -218,7 +245,7 @@ function ResumeAnalyzer() {
       });
       setSelectedSuggestions(initialSelection);
     } catch (err) {
-      setError(err.response?.data?.message || "AI failed to generate improvements. Check backend logs.");
+      setError(err.response?.data?.message || "AI failed to generate improvements.");
     } finally {
       setImproving(false);
     }
@@ -230,9 +257,7 @@ function ResumeAnalyzer() {
       [id]: !prev[id]
     }));
   };
-
-  // --- APPLY SELECTED PROPOSALS & RE-EVALUATE ---
-  const handleApplySelected = async () => {
+const handleApplySelected = async () => {
     const chosen = suggestions.filter((s) => selectedSuggestions[s.id]);
     if (chosen.length === 0) {
       setError("Please select at least one proposal to apply.");
@@ -244,10 +269,16 @@ function ResumeAnalyzer() {
 
     try {
       const previousScore = roleAnalysis?.matchPercentage ?? 0;
-      const res = await applyImprovements(resumeId, selectedRole, chosen);
+      const res = await resumeService.applyImprovements(resumeId, selectedRole, chosen);
 
       const newAnalysis = res.data;
       setRoleAnalysis(newAnalysis);
+
+  
+      if (newAnalysis.resumeId) {
+        setResumeId(newAnalysis.resumeId);
+      }
+
       setScoreDelta({
         before: previousScore,
         after: newAnalysis.matchPercentage,
@@ -261,7 +292,6 @@ function ResumeAnalyzer() {
       setApplying(false);
     }
   };
-
   const handleReset = () => {
     setFile(null);
     setResumeId(null);
@@ -278,7 +308,7 @@ function ResumeAnalyzer() {
       title="Resume Studio"
       subtitle="ATS analysis, bullet optimization, keyword intelligence & document vault"
     >
-      {error && <div className="error-banner">{error}</div>}
+      {error && <div className="error-banner" style={{ background: "#ef444422", color: "#f87171", padding: "10px 14px", borderRadius: 6, marginBottom: 16, border: "1px solid #ef4444" }}>{error}</div>}
 
       {/* --- TOP ROW: UPLOADER & RESUME VAULT --- */}
       <div className="diagnostics-grid" style={{ marginBottom: 24 }}>
@@ -295,9 +325,13 @@ function ResumeAnalyzer() {
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
               >
-                {roles.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
+                {roles.length > 0 ? (
+                  roles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))
+                ) : (
+                  <option value="Software Engineer">Software Engineer</option>
+                )}
               </select>
             </div>
           </div>
@@ -309,7 +343,7 @@ function ResumeAnalyzer() {
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current.click()}
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
           >
             <input
               ref={fileInputRef}
@@ -333,7 +367,7 @@ function ResumeAnalyzer() {
               style={{ fontSize: 11, padding: "6px 14px" }}
               onClick={(e) => {
                 e.stopPropagation();
-                fileInputRef.current.click();
+                fileInputRef.current && fileInputRef.current.click();
               }}
             >
               {file ? "Change File" : "Browse Files"}
@@ -433,33 +467,58 @@ function ResumeAnalyzer() {
       {/* --- RESULTS SECTION --- */}
       {roleAnalysis && (
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          
-          {/* Real-time Before/After Score Delta Banner */}
+
+          {/* Corrected Real-time Before/After Score Delta Banner */}
           {scoreDelta && (
             <div
               className="studio-card highlight"
               style={{
-                background: "rgba(34, 197, 94, 0.08)",
-                borderColor: "#22c55e",
+                background: scoreDelta.diff >= 0 ? "rgba(34, 197, 94, 0.08)" : "rgba(239, 68, 68, 0.08)",
+                borderColor: scoreDelta.diff >= 0 ? "#22c55e" : "#ef4444",
                 marginBottom: 20
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <h4 style={{ margin: 0, color: "#fff", fontSize: 15 }}>
-                    🎉 Selected Optimizations Applied & Re-evaluated!
+                    {scoreDelta.diff >= 0
+                      ? "🎉 Selected Optimizations Applied & Re-evaluated!"
+                      : "⚠️ Selected Optimizations Applied & Re-evaluated"}
                   </h4>
                   <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
-                    Your resume text has been updated and immediately tested against ATS heuristics.
+                    Your resume text has been updated and tested against ATS heuristics.
                   </p>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: 22, fontWeight: 900, color: "#22c55e" }}>
-                    {scoreDelta.before}% → {scoreDelta.after}%
-                  </span>
-                  <span className="role-pill" style={{ marginLeft: 10, color: "#22c55e" }}>
-                    +{scoreDelta.diff} points
-                  </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ textAlign: "right" }}>
+                    <span
+                      style={{
+                        fontSize: 22,
+                        fontWeight: 900,
+                        color: scoreDelta.diff >= 0 ? "#22c55e" : "#ef4444"
+                      }}
+                    >
+                      {scoreDelta.before}% → {scoreDelta.after}%
+                    </span>
+                    <span
+                      className="role-pill"
+                      style={{
+                        marginLeft: 10,
+                        color: scoreDelta.diff >= 0 ? "#22c55e" : "#ef4444"
+                      }}
+                    >
+                      {scoreDelta.diff > 0 ? `+${scoreDelta.diff}` : scoreDelta.diff} points
+                    </span>
+                  </div>
+
+                  <button
+                    className="neon-btn-primary"
+                    style={{ padding: "8px 16px", fontSize: 12 }}
+                    onClick={handleDownloadResume}
+                    disabled={downloading}
+                  >
+                    {downloading ? "Downloading..." : "📥 Download Resume"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -479,9 +538,13 @@ function ResumeAnalyzer() {
                 onChange={(e) => setSelectedRole(e.target.value)}
                 style={{ width: 220 }}
               >
-                {roles.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
+                {roles.length > 0 ? (
+                  roles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))
+                ) : (
+                  <option value="Software Engineer">Software Engineer</option>
+                )}
               </select>
 
               <button
@@ -490,6 +553,14 @@ function ResumeAnalyzer() {
                 disabled={evaluatingRole}
               >
                 {evaluatingRole ? "Evaluating..." : "Re-evaluate"}
+              </button>
+
+              <button
+                className="btn-secondary"
+                onClick={handleDownloadResume}
+                disabled={downloading}
+              >
+                {downloading ? "Downloading..." : "📥 Download"}
               </button>
 
               <button className="btn-secondary" onClick={handleReset}>
@@ -519,14 +590,6 @@ function ResumeAnalyzer() {
               </div>
             )}
           </div>
-
-          {roleAnalysis.scoreExplanation && (
-            <div className="studio-card" style={{ margin: "0 0 20px 0" }}>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-                💡 {roleAnalysis.scoreExplanation}
-              </p>
-            </div>
-          )}
 
           {/* Detailed Progress Bars Breakdown */}
           {roleAnalysis.scoreBreakdown && (
@@ -581,7 +644,6 @@ function ResumeAnalyzer() {
 
             {/* Priority Cards List */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {/* Missing Skills */}
               {roleAnalysis.missingRequiredSkills?.length > 0 && (
                 <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
                   <div>
@@ -595,8 +657,8 @@ function ResumeAnalyzer() {
                       Not detected in resume. Add verified evidence to pass automated screeners.
                     </p>
                   </div>
-                  <button 
-                    className="btn-secondary" 
+                  <button
+                    className="btn-secondary"
                     style={{ fontSize: 11, padding: "6px 12px" }}
                     onClick={() => setActiveTab("deterministic")}
                   >
@@ -605,7 +667,6 @@ function ResumeAnalyzer() {
                 </div>
               )}
 
-              {/* Experience Clarity */}
               <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -616,8 +677,8 @@ function ResumeAnalyzer() {
                     Years of hands-on experience or apprenticeship timeline not explicitly labeled.
                   </p>
                 </div>
-                <button 
-                  className="btn-secondary" 
+                <button
+                  className="btn-secondary"
                   style={{ fontSize: 11, padding: "6px 12px" }}
                   onClick={() => handleTriggerAIImprovement("EXPERIENCE")}
                 >
@@ -625,7 +686,6 @@ function ResumeAnalyzer() {
                 </button>
               </div>
 
-              {/* Project Impact */}
               <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -636,8 +696,8 @@ function ResumeAnalyzer() {
                     Projects detected, but measurable production metrics and architecture keywords could be stronger.
                   </p>
                 </div>
-                <button 
-                  className="btn-secondary" 
+                <button
+                  className="btn-secondary"
                   style={{ fontSize: 11, padding: "6px 12px" }}
                   onClick={() => handleTriggerAIImprovement("PROJECTS")}
                 >
@@ -645,7 +705,6 @@ function ResumeAnalyzer() {
                 </button>
               </div>
 
-              {/* Education */}
               <div className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-card)" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -660,13 +719,12 @@ function ResumeAnalyzer() {
               </div>
             </div>
 
-            {/* AI Action Trigger Button */}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
               <button
                 className="neon-btn-primary"
                 style={{ padding: "10px 24px", fontSize: 13 }}
                 onClick={() => handleTriggerAIImprovement("ALL")}
-                disabled={improving || !resumeId}
+                disabled={improving || (!resumeId && savedResumes.length === 0)}
               >
                 {improving && <span className="spinner"></span>}
                 {improving ? "Generating Rewrites with AI..." : "✨ Improve Resume with AI"}
@@ -681,7 +739,7 @@ function ResumeAnalyzer() {
                 <div>
                   <h3 style={{ margin: 0, color: "#fff" }}>📋 Review AI Rewrite Proposals</h3>
                   <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
-                    Select which targeted bullet rewrites you want to apply. No fake metrics were added.
+                    Select which targeted bullet rewrites you want to apply.
                   </p>
                 </div>
                 <span className="role-pill" style={{ color: "var(--cyan-glow)" }}>
@@ -740,7 +798,6 @@ function ResumeAnalyzer() {
                 })}
               </div>
 
-              {/* Action Button: Apply Selected & Re-evaluate */}
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
                 <button
                   className="neon-btn-primary"
@@ -814,27 +871,40 @@ function ResumeAnalyzer() {
             </div>
           )}
 
-          {/* Tab 2: Career Agent Recommendations */}
-          {activeTab === "agent" && careerAgentData && (
+          {/* Tab 2: Career Skill Agent */}
+          {activeTab === "agent" && (
             <div className="studio-card">
               <div className="box-header">
-                <h3>🎯 Agent Recommendations</h3>
+                <h3>🤖 Career Agent Recommendations</h3>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                {careerAgentData.recommendedNextSkills?.map((item, idx) => (
-                  <div key={idx} className="check-item-box" style={{ justifyContent: "space-between", background: "var(--bg-main)" }}>
-                    <div>
-                      <strong style={{ color: "#fff", display: "block" }}>{item.skill}</strong>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{item.reason}</span>
-                    </div>
-                    <span className={`custom-chip ${item.priority === "High" ? "red" : "amber"}`}>
-                      {item.priority} Priority
-                    </span>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 16px 0" }}>
+                AI agent perspective on career growth and trajectory for this role.
+              </p>
+
+              {careerAgentData ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <h4 style={{ color: "#fff", fontSize: 14, margin: "0 0 6px 0" }}>Key Strengths</h4>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+                      {careerAgentData.strengths || "Strong alignment with core developer skill set."}
+                    </p>
                   </div>
-                ))}
-              </div>
+
+                  <div>
+                    <h4 style={{ color: "#fff", fontSize: 14, margin: "0 0 6px 0" }}>Growth & Skill Plan</h4>
+                    <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+                      {careerAgentData.growthPlan || "Focus on targeted production architecture keywords and hands-on deployment metrics."}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  No agent analysis data available yet.
+                </p>
+              )}
             </div>
           )}
+
         </div>
       )}
     </AppLayout>

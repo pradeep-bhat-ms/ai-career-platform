@@ -44,4 +44,11 @@ public class Resume {
 
     @Column
     private String fileName;
+
+    // Added Fields for Version Control
+    @Column(name = "version")
+    private Integer version = 0;
+
+    @Column(name = "parent_resume_id")
+    private Long parentResumeId;
 }

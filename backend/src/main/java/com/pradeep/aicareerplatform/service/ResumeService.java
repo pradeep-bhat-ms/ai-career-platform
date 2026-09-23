@@ -1,6 +1,6 @@
 package com.pradeep.aicareerplatform.service;
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pradeep.aicareerplatform.dto.CareerSkillAgentResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeAnalysisResponseDto;
 import com.pradeep.aicareerplatform.dto.ResumeExtractionDto;
@@ -14,8 +14,6 @@ import org.springframework.ai.document.Document;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import tools.jackson.databind.ObjectMapper;
-
 
 import java.io.IOException;
 import java.util.List;
@@ -30,12 +28,11 @@ public class ResumeService {
     private final ObjectMapper objectMapper;
     private final CareerSkillAgentService careerSkillAgentService;
 
-
-
     public ResumeService(ResumeRepository resumeRepository,
                          UserRepository userRepository,
                          ResumeAiService resumeAiService,
-                         ObjectMapper objectMapper, CareerSkillAgentService careerSkillAgentService) {
+                         ObjectMapper objectMapper,
+                         CareerSkillAgentService careerSkillAgentService) {
         this.resumeRepository = resumeRepository;
         this.userRepository = userRepository;
         this.resumeAiService = resumeAiService;
@@ -81,7 +78,6 @@ public class ResumeService {
         return new ResumeAnalysisResponseDto(resume.getId(), extracted, "Resume analyzed successfully");
     }
 
-
     public CareerSkillAgentResponseDto runCareerSkillAgent(Long resumeId, String targetRole, String userEmail) throws Exception {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
@@ -98,11 +94,13 @@ public class ResumeService {
 
         return careerSkillAgentService.analyze(extracted.getTechnicalSkills(), targetRole);
     }
+
     public List<Resume> getResumesForUser(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return resumeRepository.findByUserId(user.getId());
     }
+
     public void deleteResume(Long resumeId, String userEmail) {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
@@ -112,5 +110,20 @@ public class ResumeService {
         }
 
         resumeRepository.delete(resume);
+    }
+
+    public byte[] getResumePdfBytes(Long resumeId, String userEmail) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+
+        if (!resume.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalArgumentException("You do not have access to this resume");
+        }
+
+        try {
+            return resumeAiService.generatePdfFromText(resume.getRawText());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to generate PDF for resume ID: " + resumeId, e);
+        }
     }
 }

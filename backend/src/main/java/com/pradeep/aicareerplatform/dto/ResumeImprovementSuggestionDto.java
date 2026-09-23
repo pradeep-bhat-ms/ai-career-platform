@@ -19,5 +19,5 @@ public class ResumeImprovementSuggestionDto {
     private String originalText;
     private String suggestedText;
     private String reason;
-    private boolean selected;
+    private Boolean selected = true;
 }

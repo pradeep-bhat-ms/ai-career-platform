@@ -31,13 +31,17 @@ export const analyzeForRole = (resumeId, targetRole) => {
     { params: { targetRole } }
   );
 };
+
 export const getMyResumes = () => axiosInstance.get("/resume/my-resumes");
+
 export const deleteResume = (resumeId) => axiosInstance.delete(`/resume/${resumeId}`);
+
 export const getScoreBreakdown = (resumeId, targetRole) => {
   return axiosInstance.get(`/resume/${resumeId}/score-breakdown`, {
     params: { targetRole },
   });
 };
+
 export const proposeImprovements = (resumeId, targetRole, sectionFilter = "ALL", missingSkills = []) => {
   return axiosInstance.post(
     `/resume/${resumeId}/improvements/propose`,
@@ -45,10 +49,18 @@ export const proposeImprovements = (resumeId, targetRole, sectionFilter = "ALL",
     { params: { targetRole, sectionFilter } }
   );
 };
+
 export const applyImprovements = (resumeId, targetRole, selectedProposals) => {
   return axiosInstance.post(
     `/resume/${resumeId}/improvements/apply`,
     selectedProposals,
     { params: { targetRole } }
   );
+};
+
+
+export const downloadResume = (resumeId) => {
+  return axiosInstance.get(`/resume/${resumeId}/download`, {
+    responseType: "blob", // required for binary PDF downloads
+  });
 };

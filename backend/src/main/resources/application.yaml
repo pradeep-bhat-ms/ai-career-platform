@@ -18,6 +18,10 @@ spring:
       max-request-size: 10MB
 
   ai:
+
+    # =========================
+    # GEMINI
+    # =========================
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
@@ -31,6 +35,9 @@ spring:
             model: gemini-embedding-001
             dimensions: 1536
 
+    # =========================
+    # PGVECTOR
+    # =========================
     vectorstore:
       pgvector:
         initialize-schema: true
@@ -38,18 +45,25 @@ spring:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
 
+    # =========================
+    # GROQ - OpenAI Compatible
+    # =========================
     openai:
       api-key: ${GROQ_API_KEY}
-      base-url: https://api.groq.com/openai/v1
-      chat:
-        options:
-          model: openai/gpt-oss-120b
 
+      chat:
+        base-url: https://api.groq.com/openai/v1
+        model: openai/gpt-oss-120b
+
+    # =========================
+    # MAIL
+    # =========================
   mail:
     host: smtp.gmail.com
     port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_APP_PASSWORD}
+
     properties:
       mail:
         smtp:
@@ -57,9 +71,15 @@ spring:
           starttls:
             enable: true
 
+# =========================
+# JWT
+# =========================
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
 
+# =========================
+# AI PROVIDER
+# =========================
 ai-provider:
   active: gemini

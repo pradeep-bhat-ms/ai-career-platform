@@ -1,5 +1,7 @@
 package com.pradeep.aicareerplatform.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pradeep.aicareerplatform.dto.ResumeImprovementSuggestionDto;
 import com.pradeep.aicareerplatform.dto.RoleAnalysisResponseDto;
 import com.pradeep.aicareerplatform.entity.Resume;
@@ -7,14 +9,16 @@ import com.pradeep.aicareerplatform.repository.ResumeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ResumeImprovementService {
@@ -24,15 +28,18 @@ public class ResumeImprovementService {
     private final ChatClient chatClient;
     private final ResumeRepository resumeRepository;
     private final RoleAnalysisService roleAnalysisService;
+    private final ResumeService resumeService; // Added dependency
     private final ObjectMapper objectMapper;
 
     public ResumeImprovementService(ChatClient.Builder chatClientBuilder,
                                     ResumeRepository resumeRepository,
                                     RoleAnalysisService roleAnalysisService,
+                                    @Lazy ResumeService resumeService, // @Lazy prevents circular dependency issues
                                     ObjectMapper objectMapper) {
         this.chatClient = chatClientBuilder.build();
         this.resumeRepository = resumeRepository;
         this.roleAnalysisService = roleAnalysisService;
+        this.resumeService = resumeService;
         this.objectMapper = objectMapper;
     }
 
@@ -59,7 +66,7 @@ public class ResumeImprovementService {
                 : "STRICT: Focus ONLY on rewriting the " + sectionFilter + " section. Provide 2 to 3 targeted suggestions exclusively for this section.";
 
         String prompt = String.format("""
-            You are a principal technical career coach.
+            You are a principal technical career coach and ATS optimization specialist.
             Target Role: %s
             Detected Deficiencies in Resume:
             1. Missing Core Skills: %s
@@ -75,7 +82,7 @@ public class ResumeImprovementService {
             Rules:
             - Return ONLY a valid JSON array.
             - Do NOT invent companies or metrics the candidate didn't mention.
-            - Where possible, show the exact 'originalText' to replace, the 'suggestedText', and the 'reason'.
+            - 'originalText' MUST be an exact substring present in the provided Original Resume Text.
 
             Output JSON structure:
             [
@@ -84,8 +91,8 @@ public class ResumeImprovementService {
                 "section": "EXPERIENCE",
                 "priority": "HIGH",
                 "issueTitle": "Clarify Technical Hands-on Experience",
-                "originalText": "Fresher / Trainee",
-                "suggestedText": "Associate Software Engineer / Trainee with hands-on focus on Java Spring Boot and RESTful service development.",
+                "originalText": "<EXACT_ORIGINAL_SUBSTRING>",
+                "suggestedText": "<IMPROVED_REWRITE>",
                 "reason": "Clarifies professional capacity for automated ATS filters.",
                 "selected": true
               }
@@ -98,30 +105,77 @@ public class ResumeImprovementService {
 
     @Transactional
     public RoleAnalysisResponseDto applyImprovementsAndReanalyze(
-            Long resumeId,
+            Long parentResumeId,
             String targetRole,
             List<ResumeImprovementSuggestionDto> improvements,
             String userEmail) throws Exception {
 
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new IllegalArgumentException("Resume not found"));
+        Resume parentResume = resumeRepository.findById(parentResumeId)
+                .orElseThrow(() -> new IllegalArgumentException("Original Resume not found"));
 
-        if (resume.getUser() == null || !resume.getUser().getEmail().equalsIgnoreCase(userEmail)) {
+        if (parentResume.getUser() == null || !parentResume.getUser().getEmail().equalsIgnoreCase(userEmail)) {
             throw new AccessDeniedException("Access denied: You do not have permission to modify this resume.");
         }
 
-        String updatedText = resume.getRawText();
+        String updatedText = parentResume.getRawText();
+
         if (improvements != null) {
             for (ResumeImprovementSuggestionDto imp : improvements) {
-                if (imp.getOriginalText() != null && !imp.getOriginalText().isBlank() && updatedText.contains(imp.getOriginalText())) {
-                    updatedText = updatedText.replace(imp.getOriginalText(), imp.getSuggestedText());
+                if (imp.getSelected() != null && !imp.getSelected()) {
+                    continue;
+                }
+
+                if (imp.getOriginalText() != null && !imp.getOriginalText().isBlank()) {
+                    String targetStr = imp.getOriginalText().trim();
+                    String replacementStr = imp.getSuggestedText() == null ? "" : imp.getSuggestedText().trim();
+
+                    if (updatedText.contains(targetStr)) {
+                        updatedText = updatedText.replace(targetStr, replacementStr);
+                    } else {
+                        String regex = buildFlexibleWhitespaceRegex(targetStr);
+                        updatedText = updatedText.replaceAll(regex, Matcher.quoteReplacement(replacementStr));
+                    }
                 }
             }
         }
-        resume.setRawText(updatedText);
-        resumeRepository.save(resume);
 
-        return roleAnalysisService.analyzeForRole(resumeId, targetRole, userEmail);
+        // Save as a new version entry while retaining parent history
+        Resume versionedResume = new Resume();
+        versionedResume.setUser(parentResume.getUser());
+        versionedResume.setFileName(parentResume.getFileName());
+        versionedResume.setRawText(updatedText);
+        versionedResume.setVersion((parentResume.getVersion() == null ? 0 : parentResume.getVersion()) + 1);
+        versionedResume.setParentResumeId(parentResume.getId());
+        versionedResume.setUploadedAt(LocalDateTime.now());
+
+        Resume savedVersion = resumeRepository.save(versionedResume);
+
+        // FIX: Extract base data for the new versioned resume so extractedDataJson is populated
+        resumeService.analyzeResume(savedVersion.getId(), userEmail);
+
+        // Perform role analysis after base extraction is complete;
+        // resumeId is now set inside analyzeForRole() itself via the DTO constructor.
+        return roleAnalysisService.analyzeForRole(savedVersion.getId(), targetRole, userEmail);
+
+    }
+
+    /**
+     * Builds a regex that matches targetStr with flexible whitespace between words,
+     * while treating every word itself as a literal (safe against regex metacharacters).
+     * Pattern.quote() cannot be applied to the whole string and then edited afterward,
+     * because text inside a \Q...\E block is literal — inserting \s+ there does nothing.
+     */
+    private String buildFlexibleWhitespaceRegex(String targetStr) {
+        String[] words = targetStr.trim().split("\\s+");
+        StringBuilder regexBuilder = new StringBuilder("\\b");
+        for (int i = 0; i < words.length; i++) {
+            regexBuilder.append(Pattern.quote(words[i]));
+            if (i < words.length - 1) {
+                regexBuilder.append("\\s+");
+            }
+        }
+        regexBuilder.append("\\b");
+        return regexBuilder.toString();
     }
 
     private List<ResumeImprovementSuggestionDto> parseSuggestionsJson(String rawAiResponse) {

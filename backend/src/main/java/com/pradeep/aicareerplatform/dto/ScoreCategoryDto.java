@@ -2,11 +2,15 @@ package com.pradeep.aicareerplatform.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class ScoreCategoryDto {
-    private String category;      // e.g. "Skills Match"
-    private int score;            // 0-100
-    private String explanation;   // why this category scored what it did
+    private String category;      // This generates b.getCategory()
+    private int score;
+    private String explanation;
 }

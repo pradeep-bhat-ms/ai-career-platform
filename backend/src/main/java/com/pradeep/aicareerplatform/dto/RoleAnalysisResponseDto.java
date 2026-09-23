@@ -19,4 +19,5 @@ public class RoleAnalysisResponseDto {
     private String scoreLabel; // e.g. "AI Resume Compatibility Estimate"
     private List<ScoreCategoryDto> scoreBreakdown;
     private String scoreExplanation; // plain-language "why this number" summary
+    private Long resumeId; // id of the resume this analysis belongs to
 }

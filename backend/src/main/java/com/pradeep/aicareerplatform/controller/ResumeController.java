@@ -6,6 +6,11 @@ import com.pradeep.aicareerplatform.entity.Resume;
 import com.pradeep.aicareerplatform.service.ResumeImprovementService;
 import com.pradeep.aicareerplatform.service.ResumeService;
 import com.pradeep.aicareerplatform.service.RoleAnalysisService;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -140,5 +145,21 @@ public class ResumeController {
                 );
 
         return ResponseEntity.ok(updatedAnalysis);
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadResume(@PathVariable Long id) {
+        try {
+            byte[] pdfBytes = roleAnalysisService.downloadResumePdf(id);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "Optimized_Resume.pdf");
+            headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
