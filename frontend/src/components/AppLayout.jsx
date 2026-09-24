@@ -19,15 +19,16 @@ export default function AppLayout({ children, title, subtitle }) {
   };
 
   const navItems = [
-    { label: "Dashboard", path: "/dashboard", icon: "📊" },
-    { label: "Resume Studio", path: "/resume", icon: "📄" },
-    { label: "JD Analyzer", path: "/job-description", icon: "💼" },
-    { label: "Match & Compare", path: "/match", icon: "🎯" },
-    { label: "Skill Roadmap", path: "/skill-gap", icon: "🗺️" },
-    { label: "Interview Agent", path: "/interview", icon: "🎙" },
-    { label: "Code Arena", path: "/code-arena", icon: "💻" },
-    { label: "RAG Assistant", path: "/rag-assistant", icon: "🤖" },
-  ];
+  { label: "Dashboard", path: "/dashboard", icon: "📊" },
+  { label: "Resume Studio", path: "/resume", icon: "📄" },
+  { label: "JD Analyzer", path: "/job-description", icon: "💼" },
+  { label: "Match & Compare", path: "/match", icon: "🎯" },
+  { label: "Skill Roadmap", path: "/skill-gap", icon: "🗺️" },
+  { label: "Interview Agent", path: "/interview", icon: "🎙" },
+  { label: "Code Arena", path: "/code-arena", icon: "💻" },
+  { label: "RAG Assistant", path: "/rag-assistant", icon: "🤖" },
+  { label: "GitHub Analyzer", path: "/github-analyzer", icon: "🐙" },
+];
 
   return (
     <div className="app-layout">

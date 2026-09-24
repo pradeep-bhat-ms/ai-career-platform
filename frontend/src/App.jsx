@@ -15,6 +15,7 @@ import InterviewAgent from "./pages/InterviewAgent";
 import CodeArena from "./pages/CodeArena";
 import SkillGapAndRoadmap from "./pages/SkillGapAndRoadmap";
 import "./ResumeAnalyzer.css";
+import GitHubAnalyzer from "./pages/GitHubAnalyzer";
 
 function App() {
   return (
@@ -90,6 +91,15 @@ function App() {
 />
 <Route path="/code-arena" element={<ProtectedRoute><CodeArena /></ProtectedRoute>} />
 <Route path="/skill-gap" element={<ProtectedRoute><SkillGapAndRoadmap /></ProtectedRoute>} />
+
+<Route
+  path="/github-analyzer"
+  element={
+    <ProtectedRoute>
+      <GitHubAnalyzer />
+    </ProtectedRoute>
+  }
+/>
         
       </Routes>
     </BrowserRouter>

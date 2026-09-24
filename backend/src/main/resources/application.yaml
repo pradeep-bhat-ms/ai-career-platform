@@ -8,6 +8,7 @@ spring:
     password: root
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -17,23 +18,34 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-  ai:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
+  ai:
     # =========================
     # GEMINI
     # =========================
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
-
         chat:
-          model: gemini-2.5-flash
-
+          options:
+            model: gemini-2.5-flash
         embedding:
           api-key: ${GEMINI_API_KEY}
           text:
-            model: gemini-embedding-001
-            dimensions: 1536
+            options:
+              model: gemini-embedding-001
+              dimensions: 1536
 
     # =========================
     # PGVECTOR
@@ -50,26 +62,10 @@ spring:
     # =========================
     openai:
       api-key: ${GROQ_API_KEY}
-
+      base-url: https://api.groq.com/openai/v1
       chat:
-        base-url: https://api.groq.com/openai/v1
-        model: openai/gpt-oss-120b
-
-    # =========================
-    # MAIL
-    # =========================
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_APP_PASSWORD}
-
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
+        options:
+          model: openai/gpt-oss-120b
 
 # =========================
 # JWT
