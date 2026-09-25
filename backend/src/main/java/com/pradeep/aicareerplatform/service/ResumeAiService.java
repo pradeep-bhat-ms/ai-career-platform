@@ -21,9 +21,35 @@ public class ResumeAiService {
     }
 
     public ResumeExtractionDto extractResumeData(String resumeText) {
+
         String promptText = """
-                You are an expert resume parser. Extract structured information from the resume text below.
-                Only extract information that is explicitly present in the text. Do not invent or assume anything.
+                You are an expert resume parser.
+
+                Extract structured information from the resume text below.
+
+                IMPORTANT RULES:
+                1. Extract only information explicitly present in the resume.
+                2. Never invent skills, experience, responsibilities, metrics, dates, technologies, companies, URLs, or achievements.
+                3. Preserve the meaning of the original resume.
+                4. Do not infer information that is not explicitly stated.
+                5. Extract every project separately.
+                6. For every project, extract the project name, technology stack, objective, description/responsibilities, GitHub information, and live demo information when explicitly available.
+                7. If a project field is not present, return an empty string instead of inventing information.
+                8. Keep technical technologies exactly as supported by the resume.
+                9. Preserve internship/training information as experience evidence.
+                10. The projects field must contain structured project objects, not plain project names.
+
+                PROJECT EXTRACTION:
+
+                For each project identify:
+                - name
+                - techStack
+                - objective
+                - description
+                - github
+                - liveDemo
+
+                Combine the project's explicitly stated responsibilities and implementation details into the description field.
 
                 Resume text:
                 %s
@@ -36,11 +62,11 @@ public class ResumeAiService {
     }
 
     public byte[] generatePdfFromText(String content) throws IOException {
+
         if (content == null || content.isBlank()) {
             content = "No content available to generate PDF.";
         }
 
-        // Clean common unicode symbols that standard PDFBox Helvetica cannot render
         content = content.replace("•", "- ")
                 .replace("—", "-")
                 .replace("–", "-")
@@ -55,9 +81,14 @@ public class ResumeAiService {
             PDPage page = new PDPage();
             document.addPage(page);
 
-            PDPageContentStream currentStream = new PDPageContentStream(document, page);
-            // Fix: Use PDType1Font.HELVETICA directly for PDFBox 3.x
-            currentStream.setFont(PDType1Font.HELVETICA, 10);
+            PDPageContentStream currentStream =
+                    new PDPageContentStream(document, page);
+
+            currentStream.setFont(
+                    PDType1Font.HELVETICA,
+                    10
+            );
+
             currentStream.beginText();
             currentStream.setLeading(13.5f);
             currentStream.newLineAtOffset(40, 750);
@@ -66,7 +97,12 @@ public class ResumeAiService {
             String[] lines = content.split("\n");
 
             for (String line : lines) {
-                String cleanLine = line.replaceAll("[^\\x20-\\x7F]", "").trim();
+
+                String cleanLine =
+                        line.replaceAll(
+                                "[^\\x20-\\x7F]",
+                                ""
+                        ).trim();
 
                 if (cleanLine.isEmpty()) {
                     currentStream.newLine();
@@ -75,51 +111,92 @@ public class ResumeAiService {
                 }
 
                 while (cleanLine.length() > 85) {
-                    String subLine = cleanLine.substring(0, 85);
-                    int lastSpace = subLine.lastIndexOf(' ');
+
+                    String subLine =
+                            cleanLine.substring(0, 85);
+
+                    int lastSpace =
+                            subLine.lastIndexOf(' ');
 
                     if (lastSpace > 20) {
-                        subLine = cleanLine.substring(0, lastSpace);
+                        subLine =
+                                cleanLine.substring(
+                                        0,
+                                        lastSpace
+                                );
                     }
 
                     currentStream.showText(subLine);
                     currentStream.newLine();
+
                     lineCount++;
 
-                    cleanLine = cleanLine.substring(subLine.length()).trim();
+                    cleanLine =
+                            cleanLine.substring(
+                                    subLine.length()
+                            ).trim();
 
                     if (lineCount > 48) {
+
                         currentStream.endText();
                         currentStream.close();
 
                         page = new PDPage();
                         document.addPage(page);
 
-                        currentStream = new PDPageContentStream(document, page);
-                        currentStream.setFont(PDType1Font.HELVETICA, 10);
+                        currentStream =
+                                new PDPageContentStream(
+                                        document,
+                                        page
+                                );
+
+                        currentStream.setFont(
+                                PDType1Font.HELVETICA,
+                                10
+                        );
+
                         currentStream.beginText();
                         currentStream.setLeading(13.5f);
-                        currentStream.newLineAtOffset(40, 750);
+                        currentStream.newLineAtOffset(
+                                40,
+                                750
+                        );
+
                         lineCount = 0;
                     }
                 }
 
                 currentStream.showText(cleanLine);
                 currentStream.newLine();
+
                 lineCount++;
 
                 if (lineCount > 48) {
+
                     currentStream.endText();
                     currentStream.close();
 
                     page = new PDPage();
                     document.addPage(page);
 
-                    currentStream = new PDPageContentStream(document, page);
-                    currentStream.setFont(PDType1Font.HELVETICA, 10);
+                    currentStream =
+                            new PDPageContentStream(
+                                    document,
+                                    page
+                            );
+
+                    currentStream.setFont(
+                            PDType1Font.HELVETICA,
+                            10
+                    );
+
                     currentStream.beginText();
                     currentStream.setLeading(13.5f);
-                    currentStream.newLineAtOffset(40, 750);
+                    currentStream.newLineAtOffset(
+                            40,
+                            750
+                    );
+
                     lineCount = 0;
                 }
             }
@@ -128,22 +205,28 @@ public class ResumeAiService {
             currentStream.close();
 
             document.save(out);
+
             return out.toByteArray();
         }
     }
 
-    public String getExperienceCapMessage(double experienceScore) {
+    public String getExperienceCapMessage(
+            double experienceScore) {
+
         if (experienceScore < 60) {
             return String.format("""
-                Note on ATS Score Cap (Experience: %.0f%%):
-                The AI optimizer improves formatting, keywords, and project impacts, but cannot fabricate missing years of formal industry work experience.
-                
-                How to legitimately increase Experience score:
-                1. Reformat structured Internships, Trainee roles, or Freelance projects as formal experience entries.
-                2. Highlight measurable achievements and metrics (e.g., performance tuning %%, users served).
-                3. Align job title terminology closely with target role descriptions.
-                """, experienceScore);
+                    Experience score: %.0f%%
+
+                    The analyzer evaluates the experience evidence explicitly present in the resume.
+
+                    Legitimate ways to strengthen this section:
+                    1. Clearly structure internships, trainee roles, or relevant practical experience.
+                    2. Highlight responsibilities and technologies actually used.
+                    3. Include measurable achievements only when they are supported by your actual experience.
+                    4. Align experience descriptions with the target role without adding unsupported claims.
+                    """, experienceScore);
         }
-        return "Experience score meets target criteria.";
+
+        return "Experience score meets the current target criteria.";
     }
 }

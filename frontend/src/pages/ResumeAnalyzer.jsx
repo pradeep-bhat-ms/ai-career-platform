@@ -3,11 +3,32 @@ import AppLayout from "../components/AppLayout";
 import * as resumeService from "../services/resumeService";
 import "../ResumeAnalyzer.css";
 
+const DEFAULT_ROLES = [
+  "Java Full Stack Developer",
+  "Software Engineer",
+  "Backend Developer",
+  "Frontend Developer",
+  "Full Stack Web Developer (MERN)",
+  "DevOps Engineer",
+  "Data Analyst",
+  "Data Scientist / AI Engineer",
+  "Machine Learning Engineer",
+  "Cloud & Systems Engineer",
+  "Mobile App Developer (Android / iOS)",
+  "Cybersecurity Engineer",
+  "QA Automation Engineer",
+  "Data Engineer",
+  "UI/UX Designer",
+  "Product Manager",
+  "Database Administrator",
+  "Site Reliability Engineer (SRE)"
+];
+
 function ResumeAnalyzer() {
   const [file, setFile] = useState(null);
   const [resumeId, setResumeId] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
-  const [roles, setRoles] = useState([]);
+  const [roles, setRoles] = useState(DEFAULT_ROLES);
   const [selectedRole, setSelectedRole] = useState("Software Engineer");
   const [roleAnalysis, setRoleAnalysis] = useState(null);
   const [careerAgentData, setCareerAgentData] = useState(null);
@@ -28,24 +49,25 @@ function ResumeAnalyzer() {
 
   const fileInputRef = useRef(null);
 
-  const loadInitialData = async () => {
-    try {
-      const rolesRes = resumeService.getAvailableRoles ? await resumeService.getAvailableRoles() : { data: [] };
-      const resumesRes = resumeService.getMyResumes ? await resumeService.getMyResumes() : { data: [] };
+const loadInitialData = async () => {
+  try {
+    const rolesRes = resumeService.getAvailableRoles ? await resumeService.getAvailableRoles() : { data: [] };
+    const resumesRes = resumeService.getMyResumes ? await resumeService.getMyResumes() : { data: [] };
 
-      if (rolesRes?.data && rolesRes.data.length > 0) {
-        setRoles(rolesRes.data);
-        if (!rolesRes.data.includes(selectedRole)) {
-          setSelectedRole(rolesRes.data[0]);
-        }
-      }
-
-      setSavedResumes(resumesRes?.data || []);
-    } catch (err) {
-      console.error("Initialization Error:", err);
-      setError("Could not load initial setup data");
+    // If the API returns fewer than 10 roles, force DEFAULT_ROLES so all 18 display
+    if (rolesRes?.data && Array.isArray(rolesRes.data) && rolesRes.data.length >= 10) {
+      setRoles(rolesRes.data);
+    } else {
+      setRoles(DEFAULT_ROLES);
     }
-  };
+
+    setSavedResumes(resumesRes?.data || []);
+  } catch (err) {
+    console.error("Initialization Error:", err);
+    setRoles(DEFAULT_ROLES);
+    setError("Could not load initial setup data");
+  }
+};
 
   useEffect(() => {
     loadInitialData();
@@ -257,7 +279,8 @@ function ResumeAnalyzer() {
       [id]: !prev[id]
     }));
   };
-const handleApplySelected = async () => {
+
+  const handleApplySelected = async () => {
     const chosen = suggestions.filter((s) => selectedSuggestions[s.id]);
     if (chosen.length === 0) {
       setError("Please select at least one proposal to apply.");
@@ -274,7 +297,6 @@ const handleApplySelected = async () => {
       const newAnalysis = res.data;
       setRoleAnalysis(newAnalysis);
 
-  
       if (newAnalysis.resumeId) {
         setResumeId(newAnalysis.resumeId);
       }
@@ -292,6 +314,7 @@ const handleApplySelected = async () => {
       setApplying(false);
     }
   };
+
   const handleReset = () => {
     setFile(null);
     setResumeId(null);
@@ -302,6 +325,8 @@ const handleApplySelected = async () => {
     setScoreDelta(null);
     setError("");
   };
+
+  const currentRolesList = roles.length > 0 ? roles : DEFAULT_ROLES;
 
   return (
     <AppLayout
@@ -325,13 +350,9 @@ const handleApplySelected = async () => {
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
               >
-                {roles.length > 0 ? (
-                  roles.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))
-                ) : (
-                  <option value="Software Engineer">Software Engineer</option>
-                )}
+                {currentRolesList.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -538,13 +559,9 @@ const handleApplySelected = async () => {
                 onChange={(e) => setSelectedRole(e.target.value)}
                 style={{ width: 220 }}
               >
-                {roles.length > 0 ? (
-                  roles.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))
-                ) : (
-                  <option value="Software Engineer">Software Engineer</option>
-                )}
+                {currentRolesList.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
 
               <button
@@ -801,110 +818,15 @@ const handleApplySelected = async () => {
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
                 <button
                   className="neon-btn-primary"
-                  style={{ padding: "10px 24px", fontSize: 13 }}
                   onClick={handleApplySelected}
-                  disabled={applying || Object.values(selectedSuggestions).filter(Boolean).length === 0}
+                  disabled={applying}
                 >
                   {applying && <span className="spinner"></span>}
-                  {applying ? "Applying & Re-evaluating..." : "Apply Selected Improvements →"}
+                  {applying ? "Applying Rewrites..." : "Apply Selected Rewrites"}
                 </button>
               </div>
             </div>
           )}
-
-          {/* Navigation Tabs */}
-          <div className="studio-tab-bar">
-            <button
-              className={`studio-tab-btn ${activeTab === "deterministic" ? "active" : ""}`}
-              onClick={() => setActiveTab("deterministic")}
-            >
-              <span>📊</span> ATS Role Match
-            </button>
-            <button
-              className={`studio-tab-btn ${activeTab === "agent" ? "active" : ""}`}
-              onClick={() => setActiveTab("agent")}
-            >
-              <span>🤖</span> Career Skill Agent
-            </button>
-          </div>
-
-          {/* Tab 1: Deterministic Match */}
-          {activeTab === "deterministic" && (
-            <div className="diagnostics-grid">
-              <div className="studio-card">
-                <div className="box-header">
-                  <h3>Missing Required Skills</h3>
-                  <span className="badge-count red">{roleAnalysis.missingRequiredSkills?.length || 0}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px 0" }}>
-                  Add these core skills to your resume to pass ATS filters
-                </p>
-                <div className="tag-collection">
-                  {!roleAnalysis.missingRequiredSkills || roleAnalysis.missingRequiredSkills.length === 0 ? (
-                    <span className="custom-chip green">All core skills covered!</span>
-                  ) : (
-                    roleAnalysis.missingRequiredSkills.map((s) => (
-                      <span key={s} className="custom-chip red">{s}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="studio-card">
-                <div className="box-header">
-                  <h3>Recommended to Learn</h3>
-                  <span className="badge-count">{roleAnalysis.missingRecommendedSkills?.length || 0}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 10px 0" }}>
-                  Secondary skills to boost candidate competitiveness
-                </p>
-                <div className="tag-collection">
-                  {!roleAnalysis.missingRecommendedSkills || roleAnalysis.missingRecommendedSkills.length === 0 ? (
-                    <span className="custom-chip green">All recommended skills covered!</span>
-                  ) : (
-                    roleAnalysis.missingRecommendedSkills.map((s) => (
-                      <span key={s} className="custom-chip amber">{s}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 2: Career Skill Agent */}
-          {activeTab === "agent" && (
-            <div className="studio-card">
-              <div className="box-header">
-                <h3>🤖 Career Agent Recommendations</h3>
-              </div>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 16px 0" }}>
-                AI agent perspective on career growth and trajectory for this role.
-              </p>
-
-              {careerAgentData ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div>
-                    <h4 style={{ color: "#fff", fontSize: 14, margin: "0 0 6px 0" }}>Key Strengths</h4>
-                    <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-                      {careerAgentData.strengths || "Strong alignment with core developer skill set."}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 style={{ color: "#fff", fontSize: 14, margin: "0 0 6px 0" }}>Growth & Skill Plan</h4>
-                    <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
-                      {careerAgentData.growthPlan || "Focus on targeted production architecture keywords and hands-on deployment metrics."}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  No agent analysis data available yet.
-                </p>
-              )}
-            </div>
-          )}
-
         </div>
       )}
     </AppLayout>

@@ -11,7 +11,7 @@ public class ResumeExtractionDto {
     private List<String> technicalSkills;
     private List<String> softSkills;
     private String highestEducation;
-    private List<String> projects;
+    private List<ProjectDto> projects;
     private List<String> certifications;
     private int yearsOfExperience;
     private String summary;

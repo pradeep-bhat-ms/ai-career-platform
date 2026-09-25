@@ -1,33 +1,62 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "../components/AppLayout";
 import { startInterview, submitAnswer } from "../services/interviewService";
+import { getAvailableRoles } from "../services/resumeService"; // Imports your backend API route
 import "../ResumeAnalyzer.css";
 
-const PRESET_ROLES = [
+// Updated list with 18 common job roles across domains
+const INITIAL_PRESET_ROLES = [
   "Java Full Stack Developer",
   "Frontend Developer (React / Vue)",
   "Backend Developer (Spring Boot / Node.js)",
   "Full Stack Web Developer (MERN)",
   "Software Engineer",
   "DevOps Engineer",
+  "Cloud & Systems Engineer",
   "Data Scientist / AI Engineer",
-  "Mobile App Developer (Android / React Native)",
-  "Cloud & Systems Engineer"
+  "Machine Learning Engineer",
+  "Mobile App Developer (Android / iOS)",
+  "Cybersecurity Engineer",
+  "QA Automation Engineer",
+  "Data Engineer",
+  "UI/UX Designer",
+  "Product Manager",
+  "Database Administrator (SQL / NoSQL)",
+  "Embedded Systems Engineer",
+  "Site Reliability Engineer (SRE)"
 ];
 
 function InterviewAgent() {
   const [stage, setStage] = useState("setup"); // setup | interview | complete
-  const [role, setRole] = useState(""); // Starts empty (placeholder only)
+  const [role, setRole] = useState("");
   const [interviewType, setInterviewType] = useState("Technical");
   const [difficulty, setDifficulty] = useState("Medium");
   const [totalQuestions, setTotalQuestions] = useState(5);
 
+  const [presetRoles, setPresetRoles] = useState(INITIAL_PRESET_ROLES);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [answerText, setAnswerText] = useState("");
-  const [history, setHistory] = useState([]); // {question, answer, score, strengths, weaknesses}
+  const [history, setHistory] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Dynamically fetch target roles from backend API if available
+  useEffect(() => {
+    const fetchBackendRoles = async () => {
+      try {
+        const res = await getAvailableRoles();
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+          // Merge unique roles from backend with local defaults
+          setPresetRoles((prev) => Array.from(new Set([...res.data, ...prev])));
+        }
+      } catch (err) {
+        // Fallback silently to INITIAL_PRESET_ROLES if backend endpoint is unavailable
+        console.warn("Could not fetch backend roles, using default presets.", err);
+      }
+    };
+    fetchBackendRoles();
+  }, []);
 
   const handleStart = async (e) => {
     if (e) e.preventDefault();
@@ -122,17 +151,17 @@ function InterviewAgent() {
                 autoComplete="off"
               />
               <datalist id="role-options">
-                {PRESET_ROLES.map((r, idx) => (
+                {presetRoles.map((r, idx) => (
                   <option key={idx} value={r} />
                 ))}
               </datalist>
 
-              {/* Quick Select Preset Pills */}
+              {/* Quick Select Preset Pills (First 6 roles) */}
               <div className="tag-collection" style={{ marginTop: 8 }}>
                 <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>
                   Quick picks:
                 </span>
-                {PRESET_ROLES.slice(0, 4).map((r, idx) => (
+                {presetRoles.slice(0, 6).map((r, idx) => (
                   <button
                     key={idx}
                     type="button"
