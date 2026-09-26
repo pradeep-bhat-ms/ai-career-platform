@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 @Service
 public class ResumeAiService {
 
@@ -83,9 +83,8 @@ public class ResumeAiService {
 
             PDPageContentStream currentStream =
                     new PDPageContentStream(document, page);
-
             currentStream.setFont(
-                    PDType1Font.HELVETICA,
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA),
                     10
             );
 
@@ -151,7 +150,7 @@ public class ResumeAiService {
                                 );
 
                         currentStream.setFont(
-                                PDType1Font.HELVETICA,
+                                new PDType1Font(Standard14Fonts.FontName.HELVETICA),
                                 10
                         );
 
@@ -186,7 +185,7 @@ public class ResumeAiService {
                             );
 
                     currentStream.setFont(
-                            PDType1Font.HELVETICA,
+                            new PDType1Font(Standard14Fonts.FontName.HELVETICA),
                             10
                     );
 

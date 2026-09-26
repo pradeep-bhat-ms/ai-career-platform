@@ -18,6 +18,11 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.util.*;
 
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+
+
+
 @Service
 public class RoleAnalysisService {
 
@@ -1699,7 +1704,7 @@ public class RoleAnalysisService {
                     );
 
             stream.setFont(
-                    PDType1Font.HELVETICA,
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA),
                     10
             );
 
@@ -1745,7 +1750,7 @@ public class RoleAnalysisService {
                             );
 
                     stream.setFont(
-                            PDType1Font.HELVETICA,
+                            new PDType1Font(Standard14Fonts.FontName.HELVETICA),
                             10
                     );
 
