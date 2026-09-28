@@ -37,7 +37,7 @@ export default function AppLayout({ children, title, subtitle }) {
         <div className="brand-header">
           <div className="brand-logo-icon">C</div>
           <div>
-            <div className="brand-title">Career Agents</div>
+            <div className="brand-title">CareerNexus</div>
             <div className="brand-subtitle">AI Career Intelligence</div>
           </div>
         </div>
